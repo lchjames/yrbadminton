@@ -311,7 +311,7 @@ async function handleAdmin(payload, request, env) {
 
     if (!isISODate(startDate) || !isSunday(startDate)) return json({ ok: false, error: "startDate must be a Sunday" }, 400);
 
-    const [y,m,d] = startDate.split("-").map(Number);
+    const [y, m, d] = startDate.split("-").map(Number);
     if (payload.openOnly === true) {
       await db.prepare("UPDATE sessions SET is_open = 0, updated_at = CURRENT_TIMESTAMP").run();
     }

@@ -1,30 +1,80 @@
 <!doctype html>
 <html lang="zh-Hant">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>YR Badminton Admin</title>
   <link rel="stylesheet" href="/assets/style.css">
 </head>
+
 <body>
   <main class="container admin">
-    <header class="hero"><div><p class="eyebrow">YR BADMINTON</p><h1>管理後台 <span>Admin</span></h1></div><a class="admin-link" href="/">RSVP</a></header>
-    <section class="card"><label for="adminKey">Admin Key</label><div class="inline"><input id="adminKey" type="password"><button id="loadBtn" type="button">載入 / Load</button></div><div id="topMsg" class="message"></div></section>
-    <section class="card"><h2>每週自動化</h2><p class="summary">Cloudflare Cron：每逢 Brisbane 星期一 00:05，自動關閉舊場並建立／開放下一個星期日。</p><button id="runAutoBtn" type="button">立即測試 Monday Automation</button><div id="autoMsg" class="message"></div></section>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">YR BADMINTON</p>
+        <h1>管理後台 <span>Admin</span></h1>
+      </div><a class="admin-link" href="/">RSVP</a>
+    </header>
+    <section class="card"><label for="adminKey">Admin Key</label>
+      <div class="inline"><input id="adminKey" type="password"><button id="loadBtn" type="button">載入 / Load</button>
+      </div>
+      <div id="topMsg" class="message"></div>
+    </section>
+    <section class="card">
+      <h2>每週自動化</h2>
+      <p class="summary">Cloudflare Cron：每逢 Brisbane 星期一 00:05，自動關閉舊場並建立／開放下一個星期日。</p><button id="runAutoBtn"
+        type="button">立即測試 Monday Automation</button>
+      <div id="autoMsg" class="message"></div>
+    </section>
     <section class="card">
       <h2>一鍵生成未來星期日</h2>
-      <div class="grid"><div><label>Start Sunday</label><input id="genDate" type="date"></div><div><label>Weeks</label><input id="genWeeks" type="number" min="1" max="52" value="8"></div><div><label>Venue</label><input id="genVenue" value="Goodminton"></div><div><label>Capacity</label><input id="genCap" type="number" min="1" value="26"></div></div>
-      <label class="check"><input id="genOpenOnly" type="checkbox" checked> 第一場設為唯一開放場次</label><button id="genBtn" type="button">Generate Sundays</button><div id="genMsg" class="message"></div>
+      <div class="grid">
+        <div><label>Start Sunday</label><input id="genDate" type="date"></div>
+        <div><label>Weeks</label><input id="genWeeks" type="number" min="1" max="52" value="8"></div>
+        <div><label>Venue</label><input id="genVenue" value="Goodminton"></div>
+        <div><label>Capacity</label><input id="genCap" type="number" min="1" value="26"></div>
+      </div>
+      <label class="check"><input id="genOpenOnly" type="checkbox" checked> 第一場設為唯一開放場次</label><button id="genBtn"
+        type="button">Generate Sundays</button>
+      <div id="genMsg" class="message"></div>
     </section>
     <section class="card">
       <h2>新增單一場次</h2>
-      <div class="grid"><div><label>Date</label><input id="newDate" type="date"></div><div><label>Start</label><input id="newStart" value="17:00"></div><div><label>End</label><input id="newEnd" value="19:00"></div><div><label>Venue</label><input id="newVenue" value="Goodminton"></div><div><label>Capacity</label><input id="newCap" type="number" min="1" value="26"></div><div><label>Note</label><input id="newNote"></div></div>
-      <label class="check"><input id="newOpen" type="checkbox"> Open</label><label class="check"><input id="newOnlyOpen" type="checkbox"> Set as only open session</label><button id="createBtn" type="button">Create Session</button><div id="createMsg" class="message"></div>
+      <div class="grid">
+        <div><label>Date</label><input id="newDate" type="date"></div>
+        <div><label>Start</label><input id="newStart" value="17:00"></div>
+        <div><label>End</label><input id="newEnd" value="19:00"></div>
+        <div><label>Venue</label><input id="newVenue" value="Goodminton"></div>
+        <div><label>Capacity</label><input id="newCap" type="number" min="1" value="26"></div>
+        <div><label>Note</label><input id="newNote"></div>
+      </div>
+      <label class="check"><input id="newOpen" type="checkbox"> Open</label><label class="check"><input id="newOnlyOpen"
+          type="checkbox"> Set as only open session</label><button id="createBtn" type="button">Create Session</button>
+      <div id="createMsg" class="message"></div>
     </section>
-    <section class="card"><div class="section-title"><h2>場次</h2><label class="check compact"><input id="showClosed" type="checkbox" checked> Show closed</label></div><div id="sessions"></div></section>
-    <section class="card"><h2>Bookings</h2><div class="inline"><select id="bookingSession"></select><button id="bookingLoadBtn" type="button">Load</button></div><div id="bookingSummary" class="summary"></div><div id="bookings"></div></section>
-    <section class="card"><h2>公告</h2><div class="inline"><select id="announceSession"></select><button id="announceBtn" type="button">Generate</button><button id="copyBtn" type="button" class="secondary">Copy</button></div><textarea id="announcement" rows="8"></textarea><div id="announceMsg" class="message"></div></section>
+    <section class="card">
+      <div class="section-title">
+        <h2>場次</h2><label class="check compact"><input id="showClosed" type="checkbox" checked> Show closed</label>
+      </div>
+      <div id="sessions"></div>
+    </section>
+    <section class="card">
+      <h2>Bookings</h2>
+      <div class="inline"><select id="bookingSession"></select><button id="bookingLoadBtn" type="button">Load</button>
+      </div>
+      <div id="bookingSummary" class="summary"></div>
+      <div id="bookings"></div>
+    </section>
+    <section class="card">
+      <h2>公告</h2>
+      <div class="inline"><select id="announceSession"></select><button id="announceBtn"
+          type="button">Generate</button><button id="copyBtn" type="button" class="secondary">Copy</button></div>
+      <textarea id="announcement" rows="8"></textarea>
+      <div id="announceMsg" class="message"></div>
+    </section>
   </main>
   <script src="/assets/admin.js"></script>
 </body>
+
 </html>
