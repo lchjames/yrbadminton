@@ -1,6 +1,7 @@
 const API = "/api/";
 const $ = id => document.getElementById(id);
 let sessions = [];
+let selectedSessionId = "";
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({
@@ -33,7 +34,7 @@ function chosenStatus() {
 }
 
 function selectedSession() {
-  return sessions.find(s => s.sessionId === $("sessionSelect").value);
+  return sessions.find(s => s.sessionId === selectedSessionId);
 }
 
 function brisbaneTodayISO() {
@@ -67,15 +68,16 @@ function formatEventDate(dateString) {
   };
 }
 
-function formatSessionOptionDate(dateString) {
-  if (!dateString) return "";
+function formatTabDate(dateString) {
   const d = new Date(`${dateString}T00:00:00Z`);
-  return d.toLocaleDateString("en-AU", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC"
-  });
+  return {
+    main: d.toLocaleDateString("en-AU", {
+      day: "2-digit",
+      month: "short",
+      timeZone: "UTC"
+    }).toUpperCase(),
+    year: String(d.getUTCFullYear())
+  };
 }
 
 function setFormEnabled(enabled) {
@@ -85,8 +87,8 @@ function setFormEnabled(enabled) {
 }
 
 function setEmptyState() {
-  $("sessionSelect").disabled = true;
-  $("sessionSelect").innerHTML = '<option>目前沒有未來場次 / No upcoming sessions</option>';
+  selectedSessionId = "";
+  $("sessionTabs").innerHTML = '<div class="session-tab-empty">目前沒有未來場次 / No upcoming sessions</div>';
   $("eventPanel").classList.add("event-closed");
   $("liveDot").classList.add("closed");
   $("eventStateText").textContent = "暫無場次 / NO UPCOMING SESSION";
@@ -99,6 +101,7 @@ function setEmptyState() {
   $("capacityText").textContent = "登記尚未開放 / Registration is not available";
   $("remainingText").textContent = "";
   $("capacityBar").style.width = "0%";
+  $("capacityBar").className = "capacity-fill capacity-green";
   $("summary").textContent = "";
   $("list").innerHTML = '<div class="empty-state">目前沒有可供查看的未來場次。<span>No upcoming sessions are available.</span></div>';
   $("closedNotice").classList.remove("hidden");
@@ -106,27 +109,34 @@ function setEmptyState() {
 }
 
 function renderSessions() {
-  const sel = $("sessionSelect");
   const visible = userVisibleSessions();
-  const previous = sel.value;
-  sel.innerHTML = "";
 
   if (!visible.length) {
     setEmptyState();
     return;
   }
 
-  visible.forEach(s => {
-    const option = document.createElement("option");
-    option.value = s.sessionId;
-    option.textContent = `${formatSessionOptionDate(s.date)} · ${s.isOpen ? "OPEN" : "CLOSED"}`;
-    sel.appendChild(option);
-  });
-
-  const previousStillExists = visible.some(s => s.sessionId === previous);
+  const selectedStillExists = visible.some(s => s.sessionId === selectedSessionId);
   const firstOpen = visible.find(s => s.isOpen);
-  sel.value = previousStillExists ? previous : (firstOpen?.sessionId || visible[0].sessionId);
-  sel.disabled = false;
+  if (!selectedStillExists) {
+    selectedSessionId = firstOpen?.sessionId || visible[0].sessionId;
+  }
+
+  $("sessionTabs").innerHTML = visible.map(s => {
+    const date = formatTabDate(s.date);
+    const selected = s.sessionId === selectedSessionId;
+    return `
+      <button
+        type="button"
+        class="session-tab${selected ? " is-selected" : ""}${s.isOpen ? "" : " is-closed"}"
+        data-session-id="${esc(s.sessionId)}"
+        role="tab"
+        aria-selected="${selected ? "true" : "false"}"
+        aria-label="${esc(`${s.date}, ${s.start} to ${s.end}, ${s.venue}${s.isOpen ? ", open for RSVP" : ", registration closed"}`)}">
+        <strong>${esc(date.main)}</strong>
+        <span>${esc(date.year)}</span>
+      </button>`;
+  }).join("");
 
   showSession();
 }
@@ -143,6 +153,12 @@ function showSession() {
   $("eventTime").textContent = `${s.start}–${s.end}`;
   $("eventVenue").textContent = s.venue;
   $("sessionInfo").textContent = `${s.date} (Sun) ${s.start}-${s.end} · ${s.venue} · capacity ${s.capacity}`;
+
+  $("sessionTabs").querySelectorAll(".session-tab[data-session-id]").forEach(btn => {
+    const selected = btn.dataset.sessionId === selectedSessionId;
+    btn.classList.toggle("is-selected", selected);
+    btn.setAttribute("aria-selected", selected ? "true" : "false");
+  });
 
   if (s.isOpen) {
     $("eventPanel").classList.remove("event-closed");
@@ -161,6 +177,19 @@ function showSession() {
   updateStatusUI();
 }
 
+function applyCapacityZone(used) {
+  const bar = $("capacityBar");
+  bar.classList.remove("capacity-green", "capacity-yellow", "capacity-red", "capacity-full");
+
+  if (used >= 25) {
+    bar.classList.add("capacity-red");
+  } else if (used >= 20) {
+    bar.classList.add("capacity-yellow");
+  } else {
+    bar.classList.add("capacity-green");
+  }
+}
+
 function renderAttendance(data) {
   const confirmed = data.current.filter(x => x.status === "YES" && x.placement === "CONFIRMED");
   const used = Number(data.summary.confirmedPax || 0);
@@ -173,7 +202,7 @@ function renderAttendance(data) {
     ? `尚餘 ${remaining} 個名額 / ${remaining} remaining`
     : "名額已滿 / FULL";
   $("capacityBar").style.width = `${pct}%`;
-  $("capacityBar").classList.toggle("capacity-full", remaining === 0);
+  applyCapacityZone(used);
 
   $("summary").innerHTML = `
     <div class="summary-stat"><strong>${used}</strong><span>已登記 / Registered</span></div>
@@ -201,9 +230,8 @@ function renderAttendance(data) {
 }
 
 async function loadList() {
-  const id = $("sessionSelect").value;
-  if (!id) return;
-  const d = await get({ action: "list", sessionId: id });
+  if (!selectedSessionId) return;
+  const d = await get({ action: "list", sessionId: selectedSessionId });
   renderAttendance(d);
 }
 
@@ -255,10 +283,14 @@ async function init() {
   const d = await get({ action: "sessions" });
   sessions = d.sessions || [];
   renderSessions();
-  if ($("sessionSelect").value) await loadList();
+  if (selectedSessionId) await loadList();
 }
 
-$("sessionSelect").addEventListener("change", async () => {
+$("sessionTabs").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-session-id]");
+  if (!btn || btn.dataset.sessionId === selectedSessionId) return;
+
+  selectedSessionId = btn.dataset.sessionId;
   showMessage("");
   showSession();
   await loadList();
