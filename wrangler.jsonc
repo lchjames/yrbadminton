@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "yrbadminton",
-  "main": "src/index.js",
+  "main": "src/worker.js",
   "compatibility_date": "2026-08-19",
   "workers_dev": true,
   "assets": {
@@ -18,9 +18,20 @@
       "database_id": "57d61f13-2bfe-4e36-8c67-5295ab3a3a85"
     }
   ],
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
+  "vars": {
+    "ALERT_EMAIL_TO": "apswsttss@gmail.com",
+    "ALERT_EMAIL_FROM": "badyrminton@lchjames.com"
+  },
   "triggers": {
     "crons": [
-      "20 12 * * WED"
+      "5 14 * * SUN",
+      "20 12 * * WED",
+      "0 12 * * THU"
     ]
   },
   "observability": {
