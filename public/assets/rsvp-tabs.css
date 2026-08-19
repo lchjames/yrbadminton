@@ -7,6 +7,19 @@
   text-align: right;
 }
 
+.event-card {
+  padding-top: 20px;
+}
+
+.event-topline {
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.event-topline > div:first-child {
+  padding-top: 4px;
+}
+
 .session-tabs {
   display: flex;
   justify-content: flex-end;
@@ -92,9 +105,18 @@
 }
 
 @media (max-width: 700px) {
+  .event-card {
+    padding-top: 18px;
+  }
+
   .event-topline {
     align-items: stretch;
     flex-direction: column;
+    margin-bottom: 16px;
+  }
+
+  .event-topline > div:first-child {
+    padding-top: 0;
   }
 
   .session-picker-wrap {
