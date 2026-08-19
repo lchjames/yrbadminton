@@ -67,6 +67,17 @@ function formatEventDate(dateString) {
   };
 }
 
+function formatSessionOptionDate(dateString) {
+  if (!dateString) return "";
+  const d = new Date(`${dateString}T00:00:00Z`);
+  return d.toLocaleDateString("en-AU", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC"
+  });
+}
+
 function setFormEnabled(enabled) {
   $("rsvpForm").querySelectorAll("input, button").forEach(el => {
     el.disabled = !enabled;
@@ -75,7 +86,7 @@ function setFormEnabled(enabled) {
 
 function setEmptyState() {
   $("sessionSelect").disabled = true;
-  $("sessionSelect").innerHTML = '<option>目前沒有可供查看的未來場次 / No upcoming sessions</option>';
+  $("sessionSelect").innerHTML = '<option>目前沒有未來場次 / No upcoming sessions</option>';
   $("eventPanel").classList.add("event-closed");
   $("liveDot").classList.add("closed");
   $("eventStateText").textContent = "暫無場次 / NO UPCOMING SESSION";
@@ -108,7 +119,7 @@ function renderSessions() {
   visible.forEach(s => {
     const option = document.createElement("option");
     option.value = s.sessionId;
-    option.textContent = `${s.date} · ${s.start}–${s.end} · ${s.venue} · ${s.isOpen ? "OPEN" : "CLOSED"}`;
+    option.textContent = `${formatSessionOptionDate(s.date)} · ${s.isOpen ? "OPEN" : "CLOSED"}`;
     sel.appendChild(option);
   });
 
