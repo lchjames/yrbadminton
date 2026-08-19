@@ -1,0 +1,36 @@
+.admin-secondary-btn.full {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.admin-automation-divider {
+  height: 1px;
+  margin: 18px 0;
+  background: rgba(255,255,255,.12);
+}
+
+.admin-panel-heading.compact {
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.admin-panel-heading.compact h3 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -.02em;
+}
+
+.automation-panel .admin-secondary-btn {
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.10);
+  color: #fff;
+}
+
+.automation-panel .admin-secondary-btn:hover {
+  background: rgba(255,255,255,.16);
+}
+
+.admin-status-badge.neutral {
+  background: rgba(255,255,255,.12);
+  color: #e2e8f0;
+}
