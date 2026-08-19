@@ -36,12 +36,34 @@ function selectedSession() {
   return sessions.find(s => s.sessionId === $("sessionSelect").value);
 }
 
+function brisbaneTodayISO() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Brisbane",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+function userVisibleSessions() {
+  const today = brisbaneTodayISO();
+  return sessions
+    .filter(s => s.isOpen || s.date >= today)
+    .sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
+      return dateCompare !== 0 ? dateCompare : a.start.localeCompare(b.start);
+    });
+}
+
 function formatEventDate(dateString) {
-  if (!dateString) return { month: "---", day: "--" };
+  if (!dateString) return { month: "---", day: "--", weekday: "---" };
   const d = new Date(`${dateString}T00:00:00Z`);
   return {
     month: d.toLocaleString("en-AU", { month: "short", timeZone: "UTC" }).toUpperCase(),
-    day: String(d.getUTCDate()).padStart(2, "0")
+    day: String(d.getUTCDate()).padStart(2, "0"),
+    weekday: d.toLocaleString("en-AU", { weekday: "short", timeZone: "UTC" }).toUpperCase()
   };
 }
 
@@ -51,41 +73,51 @@ function setFormEnabled(enabled) {
   });
 }
 
+function setEmptyState() {
+  $("sessionSelect").disabled = true;
+  $("sessionSelect").innerHTML = '<option>目前沒有可供查看的未來場次 / No upcoming sessions</option>';
+  $("eventPanel").classList.add("event-closed");
+  $("liveDot").classList.add("closed");
+  $("eventStateText").textContent = "暫無場次 / NO UPCOMING SESSION";
+  $("eventTitle").textContent = "目前沒有已安排的未來場次 / No upcoming session scheduled";
+  $("eventMonth").textContent = "---";
+  $("eventDay").textContent = "--";
+  $("eventWeekday").textContent = "---";
+  $("eventTime").textContent = "17:00–19:00";
+  $("eventVenue").textContent = "Goodminton";
+  $("capacityText").textContent = "登記尚未開放 / Registration is not available";
+  $("remainingText").textContent = "";
+  $("capacityBar").style.width = "0%";
+  $("summary").textContent = "";
+  $("list").innerHTML = '<div class="empty-state">目前沒有可供查看的未來場次。<span>No upcoming sessions are available.</span></div>';
+  $("closedNotice").classList.remove("hidden");
+  setFormEnabled(false);
+}
+
 function renderSessions() {
   const sel = $("sessionSelect");
-  const open = sessions.filter(s => s.isOpen);
+  const visible = userVisibleSessions();
+  const previous = sel.value;
   sel.innerHTML = "";
 
-  if (!open.length) {
-    sel.disabled = true;
-    sel.innerHTML = '<option>暫時無開放場次 / No open sessions</option>';
-    $("eventPanel").classList.add("event-closed");
-    $("eventTitle").textContent = "暫時未有開放場次";
-    $("eventMonth").textContent = "---";
-    $("eventDay").textContent = "--";
-    $("eventTime").textContent = "請稍後再查看";
-    $("eventVenue").textContent = "Goodminton";
-    $("capacityText").textContent = "RSVP 尚未開放";
-    $("remainingText").textContent = "";
-    $("capacityBar").style.width = "0%";
-    $("summary").textContent = "";
-    $("list").innerHTML = '<div class="empty-state">暫時未有開放嘅場次。</div>';
-    setFormEnabled(false);
+  if (!visible.length) {
+    setEmptyState();
     return;
   }
 
-  sel.disabled = open.length === 1;
-  open.forEach(s => {
-    const o = document.createElement("option");
-    o.value = s.sessionId;
-    o.textContent = `${s.date} · ${s.start} · ${s.venue}`;
-    sel.appendChild(o);
+  visible.forEach(s => {
+    const option = document.createElement("option");
+    option.value = s.sessionId;
+    option.textContent = `${s.date} · ${s.start}–${s.end} · ${s.venue} · ${s.isOpen ? "OPEN" : "CLOSED"}`;
+    sel.appendChild(option);
   });
 
-  $("eventPanel").classList.remove("event-closed");
-  setFormEnabled(true);
+  const previousStillExists = visible.some(s => s.sessionId === previous);
+  const firstOpen = visible.find(s => s.isOpen);
+  sel.value = previousStillExists ? previous : (firstOpen?.sessionId || visible[0].sessionId);
+  sel.disabled = false;
+
   showSession();
-  updateStatusUI();
 }
 
 function showSession() {
@@ -95,10 +127,27 @@ function showSession() {
   const date = formatEventDate(s.date);
   $("eventMonth").textContent = date.month;
   $("eventDay").textContent = date.day;
+  $("eventWeekday").textContent = date.weekday;
   $("eventTitle").textContent = s.title || "YR Badminton";
   $("eventTime").textContent = `${s.start}–${s.end}`;
   $("eventVenue").textContent = s.venue;
-  $("sessionInfo").textContent = `${s.date} (Sun) ${s.start}-${s.end} · ${s.venue} · ${s.capacity} spots`;
+  $("sessionInfo").textContent = `${s.date} (Sun) ${s.start}-${s.end} · ${s.venue} · capacity ${s.capacity}`;
+
+  if (s.isOpen) {
+    $("eventPanel").classList.remove("event-closed");
+    $("liveDot").classList.remove("closed");
+    $("eventStateText").textContent = "開放登記 / OPEN FOR RSVP";
+    $("closedNotice").classList.add("hidden");
+    setFormEnabled(true);
+  } else {
+    $("eventPanel").classList.add("event-closed");
+    $("liveDot").classList.add("closed");
+    $("eventStateText").textContent = "尚未開放登記 / REGISTRATION CLOSED";
+    $("closedNotice").classList.remove("hidden");
+    setFormEnabled(false);
+  }
+
+  updateStatusUI();
 }
 
 function renderAttendance(data) {
@@ -108,23 +157,25 @@ function renderAttendance(data) {
   const remaining = Number(data.summary.remaining || 0);
   const pct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
 
-  $("capacityText").innerHTML = `<strong>${used}</strong> / ${cap} 位已登記`;
-  $("remainingText").textContent = remaining > 0 ? `尚餘 ${remaining} 位` : "FULL";
+  $("capacityText").innerHTML = `<strong>${used}</strong> / ${cap} 人已登記 · registered`;
+  $("remainingText").textContent = remaining > 0
+    ? `尚餘 ${remaining} 個名額 / ${remaining} remaining`
+    : "名額已滿 / FULL";
   $("capacityBar").style.width = `${pct}%`;
   $("capacityBar").classList.toggle("capacity-full", remaining === 0);
 
   $("summary").innerHTML = `
-    <div class="summary-stat"><strong>${used}</strong><span>Players</span></div>
+    <div class="summary-stat"><strong>${used}</strong><span>已登記 / Registered</span></div>
     <div class="summary-divider"></div>
-    <div class="summary-stat"><strong>${remaining}</strong><span>Remaining</span></div>
+    <div class="summary-stat"><strong>${remaining}</strong><span>尚餘 / Remaining</span></div>
   `;
 
   if (!confirmed.length) {
     $("list").innerHTML = `
       <div class="empty-state">
         <span class="empty-icon">🏸</span>
-        <strong>仲未有人登記</strong>
-        <span>Be the first one in.</span>
+        <strong>目前尚未有人登記</strong>
+        <span>No attendees have registered yet.</span>
       </div>`;
     return;
   }
@@ -152,23 +203,31 @@ function showMessage(text, type = "") {
 }
 
 function updateStatusUI() {
+  const session = selectedSession();
   const status = chosenStatus();
   const warning = $("statusWarning");
   const submit = $("submitBtn");
   const cancel = $("cancelBtn");
 
   warning.classList.add("hidden");
+
+  if (!session?.isOpen) {
+    submit.disabled = true;
+    cancel.hidden = true;
+    return;
+  }
+
   submit.disabled = false;
   cancel.hidden = status === "NO";
 
   if (status === "YES") {
-    submit.querySelector("span:first-child").textContent = "確認登記";
+    submit.querySelector("span:first-child").textContent = "確認登記 / Submit RSVP";
   } else if (status === "NO") {
-    submit.querySelector("span:first-child").textContent = "更新為不出席";
+    submit.querySelector("span:first-child").textContent = "更新為不出席 / Update to NO";
   } else if (status === "MAYBE") {
     warning.classList.remove("hidden");
-    warning.textContent = "MAYBE 只作提示，不會提交亦唔會保留名額。請確定後再選 YES 或 NO。";
-    submit.querySelector("span:first-child").textContent = "MAYBE 不會提交";
+    warning.textContent = "MAYBE 僅供提示，不會提交或保留名額。請在確定後選擇 YES 或 NO。 / MAYBE is not submitted and does not reserve a place. Please choose YES or NO once confirmed.";
+    submit.querySelector("span:first-child").textContent = "MAYBE 不會提交 / MAYBE is not submitted";
     submit.disabled = true;
   }
 }
@@ -189,6 +248,7 @@ async function init() {
 }
 
 $("sessionSelect").addEventListener("change", async () => {
+  showMessage("");
   showSession();
   await loadList();
 });
@@ -212,12 +272,18 @@ document.querySelectorAll('input[name="status"]').forEach(r => {
 
 $("rsvpForm").addEventListener("submit", async e => {
   e.preventDefault();
+  const session = selectedSession();
+  if (!session?.isOpen) {
+    showMessage("此場次尚未開放登記。 / This session is not open for registration.", "error");
+    return;
+  }
+
   const status = chosenStatus();
   if (status === "MAYBE") return;
 
   const name = $("name").value.trim();
   if (!name) {
-    showMessage("請輸入姓名 / Please enter your name.", "error");
+    showMessage("請輸入姓名。 / Please enter your name.", "error");
     $("name").focus();
     return;
   }
@@ -225,12 +291,12 @@ $("rsvpForm").addEventListener("submit", async e => {
   const btn = $("submitBtn");
   btn.disabled = true;
   btn.classList.add("is-loading");
-  showMessage("提交中… / Updating…");
+  showMessage("正在提交… / Updating…");
 
   try {
     await post({
       action: "rsvp",
-      sessionId: $("sessionSelect").value,
+      sessionId: session.sessionId,
       name,
       status,
       pax: Number($("pax").value || 1),
@@ -238,17 +304,17 @@ $("rsvpForm").addEventListener("submit", async e => {
     });
 
     showMessage(
-      status === "YES" ? "✓ 已成功登記，星期日見！" : "✓ 已更新為不出席。",
+      status === "YES"
+        ? "✓ 登記成功。 / RSVP submitted successfully."
+        : "✓ 已更新為不出席。 / Attendance updated to NO.",
       "success"
     );
     await loadList();
   } catch (err) {
-    showMessage(err.message === "full" ? "名額已滿 / Session is full." : err.message, "error");
+    showMessage(err.message === "full" ? "名額已滿。 / Session is full." : err.message, "error");
   } finally {
     btn.classList.remove("is-loading");
-    setTimeout(() => {
-      btn.disabled = chosenStatus() === "MAYBE";
-    }, 800);
+    setTimeout(updateStatusUI, 800);
   }
 });
 
@@ -260,5 +326,5 @@ $("cancelBtn").addEventListener("click", () => {
 
 updateStatusUI();
 init().catch(e => {
-  showMessage(`載入失敗 / Failed to load: ${e.message}`, "error");
+  showMessage(`載入失敗：${e.message} / Failed to load: ${e.message}`, "error");
 });
