@@ -6,6 +6,12 @@
     #f6f8fa;
 }
 
+/* Respect the HTML hidden attribute even when layout classes define display. */
+.admin-auth-wrap[hidden],
+#adminApp[hidden] {
+  display: none !important;
+}
+
 .admin-shell {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
