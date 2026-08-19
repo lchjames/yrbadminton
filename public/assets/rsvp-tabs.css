@@ -81,6 +81,16 @@
   background: linear-gradient(90deg, #ef4444, #fb7185);
 }
 
+.warning .warning-line {
+  display: block;
+  line-height: 1.45;
+}
+
+.warning .warning-en {
+  margin-top: 4px;
+  color: #b45309;
+}
+
 @media (max-width: 700px) {
   .event-topline {
     align-items: stretch;
