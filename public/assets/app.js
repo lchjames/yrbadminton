@@ -3,10 +3,37 @@ const $ = id => document.getElementById(id);
 let sessions = [];
 let selectedSessionId = "";
 
+const MAYBE_LINES = [
+  {
+    zh: "「可能」不會為您保留名額；請選擇「出席」或「不出席」。",
+    en: "'Maybe' does not reserve a spot. Please choose YES or NO."
+  },
+  {
+    zh: "選擇「可能」代表尚未決定；系統不會預留名額。",
+    en: "'Maybe' = undecided; no spot will be reserved."
+  },
+  {
+    zh: "名額有限；如計劃出席，請直接選擇「YES」。",
+    en: "Slots are limited. If you want to play, choose YES."
+  },
+  {
+    zh: "統計出席人數時，「可能」將視為不出席。",
+    en: "When counting players, 'Maybe' is treated as NO."
+  }
+];
+let maybeLineIndex = 0;
+let currentMaybeLine = MAYBE_LINES[0];
+
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[c]));
+}
+
+function nextMaybeLine() {
+  currentMaybeLine = MAYBE_LINES[maybeLineIndex % MAYBE_LINES.length];
+  maybeLineIndex++;
+  return currentMaybeLine;
 }
 
 async function get(params) {
@@ -241,6 +268,14 @@ function showMessage(text, type = "") {
   el.className = `rsvp-message${type ? ` ${type}` : ""}`;
 }
 
+function renderMaybeWarning() {
+  const warning = $("statusWarning");
+  warning.innerHTML = `
+    <span class="warning-line warning-zh">${esc(currentMaybeLine.zh)}</span>
+    <span class="warning-line warning-en">${esc(currentMaybeLine.en)}</span>
+  `;
+}
+
 function updateStatusUI() {
   const session = selectedSession();
   const status = chosenStatus();
@@ -265,7 +300,7 @@ function updateStatusUI() {
     submit.querySelector("span:first-child").textContent = "更新為不出席 / Update to NO";
   } else if (status === "MAYBE") {
     warning.classList.remove("hidden");
-    warning.textContent = "MAYBE 僅供提示，不會提交或保留名額。請在確定後選擇 YES 或 NO。 / MAYBE is not submitted and does not reserve a place. Please choose YES or NO once confirmed.";
+    renderMaybeWarning();
     submit.querySelector("span:first-child").textContent = "MAYBE 不會提交 / MAYBE is not submitted";
     submit.disabled = true;
   }
@@ -310,7 +345,10 @@ $("paxMinus").addEventListener("click", () => changePax(-1));
 $("paxPlus").addEventListener("click", () => changePax(1));
 
 document.querySelectorAll('input[name="status"]').forEach(r => {
-  r.addEventListener("change", updateStatusUI);
+  r.addEventListener("change", () => {
+    if (r.checked && r.value === "MAYBE") nextMaybeLine();
+    updateStatusUI();
+  });
 });
 
 $("rsvpForm").addEventListener("submit", async e => {
