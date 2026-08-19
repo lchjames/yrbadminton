@@ -51,43 +51,79 @@ function sunday(date) {
   return !!date && new Date(date + "T00:00:00Z").getUTCDay() === 0;
 }
 
+function updateOverview() {
+  const open = sessions.filter(s => s.isOpen);
+  $("openCount").textContent = String(open.length);
+  $("totalCount").textContent = String(sessions.length);
+
+  const next = open.slice().sort((a, b) => {
+    const byDate = a.date.localeCompare(b.date);
+    return byDate || a.start.localeCompare(b.start);
+  })[0];
+
+  if (!next) {
+    $("nextSession").textContent = "No open session";
+    $("nextSessionMeta").textContent = "暫時沒有開放場次";
+    return;
+  }
+
+  $("nextSession").textContent = next.date;
+  $("nextSessionMeta").textContent = `${next.start}-${next.end} · ${next.venue} · ${next.capacity} spots`;
+}
+
 function fillSelects() {
-  const html = sessions
-    .slice()
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map(s => `<option value="${esc(s.sessionId)}">${esc(s.date)} ${esc(s.start)} · ${esc(s.venue)}${s.isOpen ? " · OPEN" : ""}</option>`)
-    .join("");
+  const sorted = sessions.slice().sort((a, b) => {
+    const byDate = a.date.localeCompare(b.date);
+    return byDate || a.start.localeCompare(b.start);
+  });
+
+  const html = sorted.length
+    ? sorted.map(s => `<option value="${esc(s.sessionId)}">${esc(s.date)} ${esc(s.start)} · ${esc(s.venue)}${s.isOpen ? " · OPEN" : " · CLOSED"}</option>`).join("")
+    : '<option value="">No sessions</option>';
 
   $("bookingSession").innerHTML = html;
   $("announceSession").innerHTML = html;
+  $("bookingSession").disabled = !sorted.length;
+  $("announceSession").disabled = !sorted.length;
+  $("bookingLoadBtn").disabled = !sorted.length;
+  $("announceBtn").disabled = !sorted.length;
 }
 
 function renderSessions() {
   const rows = sessions.filter(s => $("showClosed").checked || s.isOpen);
+
   $("sessions").innerHTML = rows.length ? rows.map(s => `
-    <article class="session-row" data-id="${esc(s.sessionId)}">
-      <div class="session-head">
-        <strong>${esc(s.date)} · ${esc(s.venue)}</strong>
-        <span class="pill ${s.isOpen ? "open" : ""}">${s.isOpen ? "OPEN" : "CLOSED"}</span>
+    <article class="admin-session-card" data-id="${esc(s.sessionId)}">
+      <div class="admin-session-header">
+        <div>
+          <div class="admin-session-title">${esc(s.date)} · ${esc(s.venue)}</div>
+          <div class="admin-session-meta">${esc(s.start)}-${esc(s.end)} · Capacity ${Number(s.capacity)}</div>
+        </div>
+        <span class="admin-session-pill ${s.isOpen ? "open" : ""}">${s.isOpen ? "OPEN" : "CLOSED"}</span>
       </div>
-      <div class="grid">
-        <div><label>Date</label><input data-f="date" type="date" value="${esc(s.date)}"></div>
-        <div><label>Start</label><input data-f="start" value="${esc(s.start)}"></div>
-        <div><label>End</label><input data-f="end" value="${esc(s.end)}"></div>
-        <div><label>Venue</label><input data-f="venue" value="${esc(s.venue)}"></div>
-        <div><label>Capacity</label><input data-f="capacity" type="number" value="${Number(s.capacity)}"></div>
-        <div><label>Note</label><input data-f="note" value="${esc(s.note || "")}"></div>
+
+      <div class="admin-session-grid">
+        <div><label class="admin-field-label">Date</label><input class="admin-input" data-f="date" type="date" value="${esc(s.date)}"></div>
+        <div><label class="admin-field-label">Start</label><input class="admin-input" data-f="start" value="${esc(s.start)}"></div>
+        <div><label class="admin-field-label">End</label><input class="admin-input" data-f="end" value="${esc(s.end)}"></div>
+        <div><label class="admin-field-label">Venue</label><input class="admin-input" data-f="venue" value="${esc(s.venue)}"></div>
+        <div><label class="admin-field-label">Capacity</label><input class="admin-input" data-f="capacity" type="number" min="1" value="${Number(s.capacity)}"></div>
+        <div><label class="admin-field-label">Note</label><input class="admin-input" data-f="note" value="${esc(s.note || "")}"></div>
       </div>
-      <label class="check"><input data-f="isOpen" type="checkbox" ${s.isOpen ? "checked" : ""}> Open</label>
-      <div class="button-row">
-        <button data-act="save">Save</button>
-        <button data-act="only" class="secondary">Only Open</button>
-        <button data-act="delete" class="danger">Delete</button>
+
+      <div class="admin-check-row">
+        <label class="admin-check"><input data-f="isOpen" type="checkbox" ${s.isOpen ? "checked" : ""}> <span>Open</span></label>
+      </div>
+
+      <div class="admin-session-actions">
+        <button data-act="save" class="admin-primary-btn" type="button">Save</button>
+        <button data-act="only" class="admin-secondary-btn" type="button">Only Open</button>
+        <button data-act="delete" class="admin-danger-btn" type="button">Delete</button>
       </div>
     </article>
-  `).join("") : '<div class="empty">No sessions</div>';
+  `).join("") : '<div class="empty">No sessions to show.</div>';
 
-  document.querySelectorAll(".session-row").forEach(row => {
+  document.querySelectorAll(".admin-session-card").forEach(row => {
     row.addEventListener("click", async e => {
       const btn = e.target.closest("button[data-act]");
       if (!btn) return;
@@ -95,6 +131,7 @@ function renderSessions() {
       const id = row.dataset.id;
       const f = name => row.querySelector(`[data-f="${name}"]`);
       btn.disabled = true;
+      $("adminMsg").textContent = "";
 
       try {
         if (btn.dataset.act === "save") {
@@ -111,15 +148,18 @@ function renderSessions() {
               isOpen: f("isOpen").checked
             }
           });
+          $("adminMsg").textContent = "Session updated.";
         }
 
         if (btn.dataset.act === "only") {
           await adminPost({ action: "admin_set_only_open", sessionId: id });
+          $("adminMsg").textContent = "This is now the only open session.";
         }
 
         if (btn.dataset.act === "delete") {
           if (!confirm("Delete this session and all its bookings?")) return;
           await adminPost({ action: "admin_delete_session", sessionId: id });
+          $("adminMsg").textContent = "Session deleted.";
         }
 
         await loadSessions();
@@ -136,6 +176,7 @@ async function loadSessions() {
   if (!key()) throw new Error("請輸入 Admin Key");
   const d = await adminPost({ action: "admin_sessions" });
   sessions = d.sessions || [];
+  updateOverview();
   fillSelects();
   renderSessions();
 }
@@ -167,10 +208,14 @@ $("loadBtn").addEventListener("click", authenticate);
 $("adminKey").addEventListener("keydown", e => {
   if (e.key === "Enter") authenticate();
 });
-
+$("logoutBtn").addEventListener("click", () => lockAdmin("Admin 已鎖定 / Locked"));
 $("showClosed").addEventListener("change", renderSessions);
 
 $("runAutoBtn").addEventListener("click", async () => {
+  const btn = $("runAutoBtn");
+  btn.disabled = true;
+  $("autoMsg").textContent = "Running...";
+
   try {
     const d = await adminPost({ action: "admin_run_monday_automation" });
     $("autoMsg").textContent = d.action === "opened_existing"
@@ -179,10 +224,16 @@ $("runAutoBtn").addEventListener("click", async () => {
     await loadSessions();
   } catch (e) {
     $("autoMsg").textContent = e.message;
+  } finally {
+    btn.disabled = false;
   }
 });
 
 $("createBtn").addEventListener("click", async () => {
+  const btn = $("createBtn");
+  btn.disabled = true;
+  $("createMsg").textContent = "";
+
   try {
     if (!sunday($("newDate").value)) throw new Error("只可選星期日 / Sunday only");
 
@@ -204,23 +255,41 @@ $("createBtn").addEventListener("click", async () => {
     await loadSessions();
   } catch (e) {
     $("createMsg").textContent = e.message;
+  } finally {
+    btn.disabled = false;
   }
 });
 
+async function loadBookings() {
+  if (!$("bookingSession").value) return;
+
+  const d = await adminPost({
+    action: "admin_list_bookings",
+    sessionId: $("bookingSession").value
+  });
+
+  $("bookingSummary").textContent = `Confirmed ${d.summary.confirmedPax}/${d.summary.cap} · Remaining ${d.summary.remaining}`;
+  $("bookings").innerHTML = d.current.length
+    ? d.current.map(r => `
+        <div class="admin-booking-row">
+          <div><span class="admin-booking-name">${esc(r.name)}</span><span class="admin-booking-status">${esc(r.status)}</span></div>
+          <span class="admin-booking-pax">${r.pax}</span>
+        </div>
+      `).join("")
+    : '<div class="empty">No bookings</div>';
+}
+
 $("bookingLoadBtn").addEventListener("click", async () => {
   try {
-    const d = await adminPost({
-      action: "admin_list_bookings",
-      sessionId: $("bookingSession").value
-    });
-
-    $("bookingSummary").textContent = `Confirmed ${d.summary.confirmedPax}/${d.summary.cap} · Remaining ${d.summary.remaining}`;
-    $("bookings").innerHTML = d.current.length
-      ? d.current.map(r => `<div class="attendee"><span>${esc(r.name)} · ${esc(r.status)}</span><strong>${r.pax}</strong></div>`).join("")
-      : '<div class="empty">No bookings</div>';
+    await loadBookings();
   } catch (e) {
     $("adminMsg").textContent = e.message;
   }
+});
+
+$("bookingSession").addEventListener("change", () => {
+  $("bookingSummary").textContent = "";
+  $("bookings").innerHTML = "";
 });
 
 function announcement() {
