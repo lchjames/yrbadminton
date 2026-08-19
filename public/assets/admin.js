@@ -47,6 +47,22 @@ async function adminPost(body) {
   return j;
 }
 
+async function adminTestEmailPost() {
+  const r = await fetch("/api/test-email", {
+    method: "POST",
+    headers: {
+      "x-admin-key": key()
+    }
+  });
+
+  const j = await r.json();
+  if (!r.ok || !j.ok) {
+    if (r.status === 401) lockAdmin("Admin Key 不正確 / Invalid Admin Key");
+    throw new Error(j.error || `HTTP ${r.status}`);
+  }
+  return j;
+}
+
 function sunday(date) {
   return !!date && new Date(date + "T00:00:00Z").getUTCDay() === 0;
 }
@@ -224,6 +240,21 @@ $("runAutoBtn").addEventListener("click", async () => {
     await loadSessions();
   } catch (e) {
     $("autoMsg").textContent = e.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("testEmailBtn").addEventListener("click", async () => {
+  const btn = $("testEmailBtn");
+  btn.disabled = true;
+  $("testEmailMsg").textContent = "正在寄送… / Sending…";
+
+  try {
+    const d = await adminTestEmailPost();
+    $("testEmailMsg").textContent = `測試電郵已寄出 / Test email sent → ${d.to}`;
+  } catch (e) {
+    $("testEmailMsg").textContent = `寄送失敗 / Failed: ${e.message}`;
   } finally {
     btn.disabled = false;
   }
