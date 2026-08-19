@@ -216,7 +216,7 @@ $("bookingLoadBtn").addEventListener("click", async () => {
 
     $("bookingSummary").textContent = `Confirmed ${d.summary.confirmedPax}/${d.summary.cap} · Remaining ${d.summary.remaining}`;
     $("bookings").innerHTML = d.current.length
-      ? d.current.map(r => `<div class="attendee"><span>${esc(r.name)} · ${esc(r.status)} · ${esc(r.placement)}</span><strong>${r.pax}</strong></div>`).join("")
+      ? d.current.map(r => `<div class="attendee"><span>${esc(r.name)} · ${esc(r.status)}</span><strong>${r.pax}</strong></div>`).join("")
       : '<div class="empty">No bookings</div>';
   } catch (e) {
     $("adminMsg").textContent = e.message;
