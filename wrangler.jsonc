@@ -12,8 +12,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "yr-badminton",
-      "database_id": "4d0995bf-8b3e-4e7b-8c8d-ac9dbcc2745d"
+      "database_name": "yrbadminton",
+      "database_id": "57d61f13-2bfe-4e36-8c67-5295ab3a3a85"
     }
   ],
   "triggers": {

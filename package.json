@@ -1,12 +1,13 @@
 {
   "name": "yr-badminton-d1",
+  "version": "1.0.0",
   "private": true,
-  "version": "1.1.0",
+  "description": "YR Badminton RSVP using Cloudflare Workers and D1",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:init:remote": "wrangler d1 execute yr-badminton --remote --file=./schema.sql",
-    "db:init:local": "wrangler d1 execute yr-badminton --local --file=./schema.sql"
+    "db:init:remote": "wrangler d1 execute yrbadminton --remote --file=./schema.sql",
+    "db:init:local": "wrangler d1 execute yrbadminton --local --file=./schema.sql"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
