@@ -20,7 +20,7 @@
   ],
   "triggers": {
     "crons": [
-      "5 12 * * WED"
+      "20 12 * * WED"
     ]
   },
   "observability": {
