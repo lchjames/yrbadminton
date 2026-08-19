@@ -113,6 +113,17 @@ function setFormEnabled(enabled) {
   });
 }
 
+function resetAttendanceStatus() {
+  document.querySelectorAll('input[name="status"]').forEach(r => {
+    r.checked = false;
+  });
+  $("statusWarning").classList.add("hidden");
+  $("statusWarning").innerHTML = "";
+  $("cancelBtn").hidden = true;
+  $("submitBtn").disabled = true;
+  $("submitBtn").querySelector("span:first-child").textContent = "請選擇出席狀態 / Select attendance";
+}
+
 function setEmptyState() {
   selectedSessionId = "";
   $("sessionTabs").innerHTML = '<div class="session-tab-empty">目前沒有未來場次 / No upcoming sessions</div>';
@@ -132,6 +143,7 @@ function setEmptyState() {
   $("summary").textContent = "";
   $("list").innerHTML = '<div class="empty-state">目前沒有可供查看的未來場次。<span>No upcoming sessions are available.</span></div>';
   $("closedNotice").classList.remove("hidden");
+  resetAttendanceStatus();
   setFormEnabled(false);
 }
 
@@ -291,6 +303,13 @@ function updateStatusUI() {
     return;
   }
 
+  if (!status) {
+    submit.disabled = true;
+    cancel.hidden = true;
+    submit.querySelector("span:first-child").textContent = "請選擇出席狀態 / Select attendance";
+    return;
+  }
+
   submit.disabled = false;
   cancel.hidden = status === "NO";
 
@@ -326,6 +345,7 @@ $("sessionTabs").addEventListener("click", async e => {
   if (!btn || btn.dataset.sessionId === selectedSessionId) return;
 
   selectedSessionId = btn.dataset.sessionId;
+  resetAttendanceStatus();
   showMessage("");
   showSession();
   await loadList();
@@ -360,6 +380,10 @@ $("rsvpForm").addEventListener("submit", async e => {
   }
 
   const status = chosenStatus();
+  if (!status) {
+    showMessage("請選擇出席狀態。 / Please select an attendance status.", "error");
+    return;
+  }
   if (status === "MAYBE") return;
 
   const name = $("name").value.trim();
