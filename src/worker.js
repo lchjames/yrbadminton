@@ -1,9 +1,24 @@
 import app from "./index.js";
 
 const MONDAY_AUTO_OPEN_CRON = "5 14 * * SUN";
-const TEST_CRON = "20 12 * * WED";
 const THURSDAY_REMINDER_CRON = "0 12 * * THU";
 const LOW_REG_THRESHOLD = 20;
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store"
+    }
+  });
+}
+
+function adminAuthorised(request, env) {
+  const expected = String(env.ADMIN_KEY || "");
+  if (!expected) return false;
+  return (request.headers.get("x-admin-key") || "") === expected;
+}
 
 function slug(value) {
   return String(value || "")
@@ -133,29 +148,46 @@ async function sendEmail(env, { subject, text, html }) {
   const to = env.ALERT_EMAIL_TO || "apswsttss@gmail.com";
   const from = env.ALERT_EMAIL_FROM || "badyrminton@lchjames.com";
 
-  return env.EMAIL.send({
+  await env.EMAIL.send({
     to,
     from: { email: from, name: "YR Badminton" },
     subject,
     text,
     html
   });
+
+  return { to, from };
 }
 
-async function sendAutomationTestEmail(env, automationResult) {
-  const session = await getSessionByPublicId(env.DB, automationResult.sessionId);
-  if (!session) throw new Error("automation session not found");
+async function sendManualTestEmail(env) {
+  const session = await getOpenUpcomingSession(env.DB);
+  const to = env.ALERT_EMAIL_TO || "apswsttss@gmail.com";
+  const from = env.ALERT_EMAIL_FROM || "badyrminton@lchjames.com";
+
+  if (!session) {
+    await sendEmail(env, {
+      subject: "YR Badminton — Test Email",
+      text: [
+        "YR Badminton email test completed successfully.",
+        "",
+        "No open upcoming session is currently available.",
+        "",
+        "https://yrbadminton.lchjames.com/"
+      ].join("\n"),
+      html: `
+        <h2>YR Badminton email test completed successfully</h2>
+        <p>No open upcoming session is currently available.</p>
+        <p><a href="https://yrbadminton.lchjames.com/">Open YR Badminton RSVP</a></p>
+      `
+    });
+    return { action: "test_email_sent", to, from, session: null };
+  }
 
   const summary = await getRegistrationSummary(env.DB, session);
-  const actionText = automationResult.action === "opened_existing"
-    ? "Existing Sunday session was changed to OPEN."
-    : "A new Sunday session was created and opened.";
-
-  const subject = `YR Badminton Automation Test — ${session.event_date}`;
+  const subject = `YR Badminton — Test Email (${session.event_date})`;
   const text = [
-    "YR Badminton automation test completed.",
+    "YR Badminton email test completed successfully.",
     "",
-    actionText,
     `Date: ${session.event_date}`,
     `Time: ${session.start_time}–${session.end_time}`,
     `Venue: ${session.venue}`,
@@ -166,8 +198,7 @@ async function sendAutomationTestEmail(env, automationResult) {
   ].join("\n");
 
   const html = `
-    <h2>YR Badminton automation test completed</h2>
-    <p>${htmlEscape(actionText)}</p>
+    <h2>YR Badminton email test completed successfully</h2>
     <p><strong>Date:</strong> ${htmlEscape(session.event_date)}<br>
     <strong>Time:</strong> ${htmlEscape(session.start_time)}–${htmlEscape(session.end_time)}<br>
     <strong>Venue:</strong> ${htmlEscape(session.venue)}<br>
@@ -176,7 +207,14 @@ async function sendAutomationTestEmail(env, automationResult) {
     <p><a href="https://yrbadminton.lchjames.com/">Open YR Badminton RSVP</a></p>
   `;
 
-  return sendEmail(env, { subject, text, html });
+  await sendEmail(env, { subject, text, html });
+  return {
+    action: "test_email_sent",
+    to,
+    from,
+    session: session.event_date,
+    registered: summary.registered
+  };
 }
 
 async function sendLowRegistrationReminder(env) {
@@ -224,17 +262,6 @@ async function runScheduled(controller, env) {
       await closePastSessions(env);
       return createOrOpenNextSunday(env);
 
-    case TEST_CRON: {
-      await closePastSessions(env);
-      const result = await createOrOpenNextSunday(env);
-      try {
-        await sendAutomationTestEmail(env, result);
-      } catch (error) {
-        console.error("Test email failed:", error?.code || "", error?.message || error);
-      }
-      return result;
-    }
-
     case THURSDAY_REMINDER_CRON:
       await closePastSessions(env);
       return sendLowRegistrationReminder(env);
@@ -246,7 +273,26 @@ async function runScheduled(controller, env) {
 }
 
 export default {
-  fetch(request, env, ctx) {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/api/test-email" && request.method === "POST") {
+      if (!adminAuthorised(request, env)) {
+        return json({ ok: false, error: "unauthorised" }, 401);
+      }
+
+      try {
+        const result = await sendManualTestEmail(env);
+        return json({ ok: true, ...result });
+      } catch (error) {
+        const code = String(error?.code || "").trim();
+        const message = String(error?.message || error || "Email sending failed").trim();
+        const combined = [code, message].filter(Boolean).join(" ");
+        console.error("Manual test email failed:", combined);
+        return json({ ok: false, error: combined || "Email sending failed" }, 500);
+      }
+    }
+
     return app.fetch(request, env, ctx);
   },
 
