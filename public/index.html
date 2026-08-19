@@ -145,5 +145,47 @@
   </main>
 
   <script src="/assets/app.js"></script>
+  <script>
+    (() => {
+      const tabs = document.getElementById("sessionTabs");
+      if (!tabs) return;
+
+      let synced = false;
+      const syncFirstDateLayout = () => {
+        const selected = tabs.querySelector(".session-tab.is-selected");
+        if (!selected || typeof showSession !== "function") return false;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            showSession();
+
+            if (window.matchMedia("(max-width: 700px)").matches) {
+              const desiredLeft = Math.max(0, selected.offsetLeft - tabs.offsetLeft - 2);
+              tabs.scrollLeft = desiredLeft;
+
+              const eventMain = document.querySelector(".event-main");
+              if (eventMain) void eventMain.offsetWidth;
+            }
+          });
+        });
+
+        synced = true;
+        return true;
+      };
+
+      const observer = new MutationObserver(() => {
+        if (!synced && syncFirstDateLayout()) observer.disconnect();
+      });
+      observer.observe(tabs, { childList: true });
+
+      window.addEventListener("load", () => {
+        if (syncFirstDateLayout()) observer.disconnect();
+      }, { once: true });
+
+      window.addEventListener("pageshow", event => {
+        if (event.persisted) syncFirstDateLayout();
+      });
+    })();
+  </script>
 </body>
 </html>
