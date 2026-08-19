@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "yrbadminton",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-19",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yr-badminton",
+      "database_id": "4d0995bf-8b3e-4e7b-8c8d-ac9dbcc2745d"
+    }
+  ],
+  "triggers": {
+    "crons": ["5 14 * * 0"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}

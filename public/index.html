@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>YR Badminton RSVP</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <div><p class="eyebrow">YR BADMINTON</p><h1>出席登記 <span>RSVP</span></h1><p>每星期日 17:00–19:00 · Goodminton</p></div>
+      <a class="admin-link" href="/admin.html">Admin</a>
+    </header>
+    <section class="card">
+      <label for="sessionSelect">場次 / Session</label><select id="sessionSelect"></select><div id="sessionInfo" class="session-info"></div>
+    </section>
+    <section class="card">
+      <form id="rsvpForm">
+        <label for="name">姓名 / Name</label><input id="name" maxlength="80" autocomplete="name" required placeholder="Name / Nickname">
+        <label>狀態 / Status</label>
+        <div class="status-grid">
+          <label class="status-chip"><input type="radio" name="status" value="YES" checked> YES</label>
+          <label class="status-chip"><input type="radio" name="status" value="MAYBE"> MAYBE</label>
+          <label class="status-chip"><input type="radio" name="status" value="NO"> NO</label>
+        </div>
+        <div id="statusWarning" class="warning hidden"></div>
+        <div class="two-col">
+          <div><label for="pax">人數 / Players</label><input id="pax" type="number" min="1" max="20" value="1"></div>
+          <div><label for="note">備註 / Note</label><input id="note" maxlength="300" placeholder="Optional"></div>
+        </div>
+        <div class="button-row"><button id="submitBtn" type="submit">提交 / Update</button><button id="cancelBtn" class="secondary" type="button">取消出席 / Cancel</button></div>
+        <div id="msg" class="message"></div>
+      </form>
+    </section>
+    <section class="card">
+      <div class="section-title"><h2>目前出席名單</h2><button id="refreshBtn" class="ghost" type="button">Refresh</button></div>
+      <div id="summary" class="summary"></div><div id="list" class="attendee-list"></div>
+    </section>
+  </main>
+  <script src="/assets/app.js"></script>
+</body>
+</html>
