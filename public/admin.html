@@ -82,6 +82,18 @@
           <p class="admin-panel-copy">每逢 Brisbane 星期一 00:05，自動關閉舊場並處理下一個星期日。若該場已存在但為 CLOSED，會直接改為 OPEN；否則建立新場次。</p>
           <button id="runAutoBtn" class="admin-primary-btn full" type="button">立即測試 Monday Automation</button>
           <div id="autoMsg" class="admin-message"></div>
+
+          <div class="admin-automation-divider"></div>
+          <div class="admin-panel-heading compact">
+            <div>
+              <p class="admin-section-kicker">EMAIL REMINDER</p>
+              <h3>低登記人數提醒</h3>
+            </div>
+            <span class="admin-status-badge neutral">THU 22:00</span>
+          </div>
+          <p class="admin-panel-copy">每逢 Brisbane 星期四 22:00 檢查目前開放場次；如已登記人數少於 20，寄送提醒電郵至 apswsttss@gmail.com。</p>
+          <button id="testEmailBtn" class="admin-secondary-btn full" type="button">寄送測試電郵 / Send Test Email</button>
+          <div id="testEmailMsg" class="admin-message"></div>
         </article>
 
         <article class="admin-panel">
