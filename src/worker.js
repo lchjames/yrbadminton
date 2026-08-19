@@ -3,6 +3,8 @@ import app from "./index.js";
 const MONDAY_AUTO_OPEN_CRON = "5 14 * * SUN";
 const THURSDAY_REMINDER_CRON = "0 12 * * THU";
 const LOW_REG_THRESHOLD = 20;
+const ALERT_EMAIL_TO = "apswsttss@gmail.com";
+const ALERT_EMAIL_FROM = "badyrminton@gmail.com";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -92,14 +94,6 @@ async function createOrOpenNextSunday(env) {
   return { action: "created_and_opened", date, sessionId: publicId };
 }
 
-async function getSessionByPublicId(db, publicId) {
-  return db.prepare(`
-    SELECT id, public_id, title, event_date, start_time, end_time, venue, capacity, is_open
-    FROM sessions
-    WHERE public_id = ?
-  `).bind(publicId).first();
-}
-
 async function getOpenUpcomingSession(db) {
   const today = brisbaneToday();
   return db.prepare(`
@@ -143,29 +137,53 @@ function htmlEscape(value) {
 }
 
 async function sendEmail(env, { subject, text, html }) {
-  if (!env.EMAIL) throw new Error("EMAIL binding is not configured");
+  const webhookUrl = String(env.MAIL_WEBHOOK_URL || "").trim();
+  const webhookSecret = String(env.MAIL_WEBHOOK_SECRET || "").trim();
 
-  const to = env.ALERT_EMAIL_TO || "apswsttss@gmail.com";
-  const from = env.ALERT_EMAIL_FROM || "badyrminton@lchjames.com";
+  if (!webhookUrl) throw new Error("MAIL_WEBHOOK_URL is not configured");
+  if (!webhookSecret) throw new Error("MAIL_WEBHOOK_SECRET is not configured");
 
-  await env.EMAIL.send({
-    to,
-    from: { email: from, name: "YR Badminton" },
-    subject,
-    text,
-    html
-  });
+  let response;
+  try {
+    response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        secret: webhookSecret,
+        subject,
+        text,
+        html
+      }),
+      redirect: "follow"
+    });
+  } catch (error) {
+    throw new Error(`Google mail relay request failed: ${error?.message || error}`);
+  }
 
-  return { to, from };
+  const raw = await response.text();
+  let result;
+  try {
+    result = JSON.parse(raw);
+  } catch {
+    const preview = raw.replace(/\s+/g, " ").slice(0, 180);
+    throw new Error(`Google mail relay returned non-JSON response (HTTP ${response.status}): ${preview || "empty response"}`);
+  }
+
+  if (!response.ok || !result?.ok) {
+    throw new Error(result?.error || `Google mail relay failed (HTTP ${response.status})`);
+  }
+
+  return {
+    to: result.to || ALERT_EMAIL_TO,
+    from: result.from || ALERT_EMAIL_FROM
+  };
 }
 
 async function sendManualTestEmail(env) {
   const session = await getOpenUpcomingSession(env.DB);
-  const to = env.ALERT_EMAIL_TO || "apswsttss@gmail.com";
-  const from = env.ALERT_EMAIL_FROM || "badyrminton@lchjames.com";
 
   if (!session) {
-    await sendEmail(env, {
+    const delivery = await sendEmail(env, {
       subject: "YR Badminton — Test Email",
       text: [
         "YR Badminton email test completed successfully.",
@@ -180,7 +198,7 @@ async function sendManualTestEmail(env) {
         <p><a href="https://yrbadminton.lchjames.com/">Open YR Badminton RSVP</a></p>
       `
     });
-    return { action: "test_email_sent", to, from, session: null };
+    return { action: "test_email_sent", ...delivery, session: null };
   }
 
   const summary = await getRegistrationSummary(env.DB, session);
@@ -207,11 +225,10 @@ async function sendManualTestEmail(env) {
     <p><a href="https://yrbadminton.lchjames.com/">Open YR Badminton RSVP</a></p>
   `;
 
-  await sendEmail(env, { subject, text, html });
+  const delivery = await sendEmail(env, { subject, text, html });
   return {
     action: "test_email_sent",
-    to,
-    from,
+    ...delivery,
     session: session.event_date,
     registered: summary.registered
   };
@@ -252,8 +269,8 @@ async function sendLowRegistrationReminder(env) {
     <p><a href="https://yrbadminton.lchjames.com/">Open YR Badminton RSVP</a></p>
   `;
 
-  await sendEmail(env, { subject, text, html });
-  return { action: "email_sent", registered: summary.registered };
+  const delivery = await sendEmail(env, { subject, text, html });
+  return { action: "email_sent", registered: summary.registered, ...delivery };
 }
 
 async function runScheduled(controller, env) {
@@ -285,11 +302,9 @@ export default {
         const result = await sendManualTestEmail(env);
         return json({ ok: true, ...result });
       } catch (error) {
-        const code = String(error?.code || "").trim();
         const message = String(error?.message || error || "Email sending failed").trim();
-        const combined = [code, message].filter(Boolean).join(" ");
-        console.error("Manual test email failed:", combined);
-        return json({ ok: false, error: combined || "Email sending failed" }, 500);
+        console.error("Manual test email failed:", message);
+        return json({ ok: false, error: message || "Email sending failed" }, 500);
       }
     }
 
