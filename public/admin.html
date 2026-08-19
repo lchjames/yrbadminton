@@ -5,80 +5,153 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>YR Badminton Admin</title>
   <link rel="stylesheet" href="/assets/style.css">
+  <link rel="stylesheet" href="/assets/admin.css">
 </head>
-<body>
-  <main class="container admin">
-    <section id="authGate" class="card">
-      <h1>YR Badminton Admin</h1>
-      <label for="adminKey">Admin Key</label>
-      <div class="inline">
-        <input id="adminKey" type="password" autocomplete="current-password" autofocus>
-        <button id="loadBtn" type="button">登入 / Login</button>
+<body class="admin-page">
+  <main class="admin-shell">
+    <section id="authGate" class="admin-auth-wrap">
+      <a class="admin-back" href="/" aria-label="Back to RSVP registration page">
+        <span aria-hidden="true">←</span>
+        <span>返回登記頁 / RSVP</span>
+        <code>/</code>
+      </a>
+
+      <div class="admin-login-card">
+        <div class="admin-brand-mark">YR</div>
+        <p class="admin-kicker">YR BADMINTON</p>
+        <h1>管理後台</h1>
+        <p class="admin-login-copy">輸入 Admin Key 以載入管理功能。</p>
+
+        <label class="admin-field-label" for="adminKey">Admin Key</label>
+        <div class="admin-login-row">
+          <input id="adminKey" class="admin-input" type="password" autocomplete="current-password" autofocus placeholder="Enter Admin Key">
+          <button id="loadBtn" class="admin-primary-btn" type="button">登入 / Login</button>
+        </div>
+        <div id="topMsg" class="admin-message" role="status"></div>
       </div>
-      <div id="topMsg" class="message"></div>
     </section>
 
     <div id="adminApp" hidden>
-      <header class="hero">
-        <div>
-          <p class="eyebrow">YR BADMINTON</p>
-          <h1>管理後台 <span>Admin</span></h1>
+      <header class="admin-toolbar">
+        <div class="admin-toolbar-brand">
+          <div class="admin-brand-mark small">YR</div>
+          <div>
+            <p class="admin-kicker">YR BADMINTON</p>
+            <h1>管理後台 <span>Admin</span></h1>
+          </div>
         </div>
-        <a class="admin-link" href="/">RSVP</a>
+        <div class="admin-toolbar-actions">
+          <a class="admin-route-btn" href="/">
+            <span aria-hidden="true">←</span>
+            <span>返回登記頁 / RSVP</span>
+            <code>/</code>
+          </a>
+          <button id="logoutBtn" class="admin-ghost-btn" type="button">鎖定 / Lock</button>
+        </div>
       </header>
 
-      <div id="adminMsg" class="message"></div>
+      <div id="adminMsg" class="admin-message admin-global-message" role="status"></div>
 
-      <section class="card">
-        <h2>每週自動化</h2>
-        <p class="summary">Cloudflare Cron：每逢 Brisbane 星期一 00:05，自動關閉舊場，並建立／開放下一個星期日。如果該場次已存在但為 CLOSED，會直接改為 OPEN，不會重複建立。</p>
-        <button id="runAutoBtn" type="button">立即測試 Monday Automation</button>
-        <div id="autoMsg" class="message"></div>
+      <section class="admin-overview" aria-label="Dashboard overview">
+        <article class="admin-stat-card">
+          <span class="admin-stat-label">Open Sessions</span>
+          <strong id="openCount" class="admin-stat-value">—</strong>
+          <span class="admin-stat-note">目前開放場次</span>
+        </article>
+        <article class="admin-stat-card">
+          <span class="admin-stat-label">All Sessions</span>
+          <strong id="totalCount" class="admin-stat-value">—</strong>
+          <span class="admin-stat-note">包含已關閉歷史</span>
+        </article>
+        <article class="admin-stat-card admin-stat-wide">
+          <span class="admin-stat-label">Next Open Session</span>
+          <strong id="nextSession" class="admin-stat-value admin-stat-date">—</strong>
+          <span id="nextSessionMeta" class="admin-stat-note">暫時沒有開放場次</span>
+        </article>
       </section>
 
-      <section class="card">
-        <h2>新增單一場次</h2>
-        <div class="grid">
-          <div><label>Date</label><input id="newDate" type="date"></div>
-          <div><label>Start</label><input id="newStart" value="17:00"></div>
-          <div><label>End</label><input id="newEnd" value="19:00"></div>
-          <div><label>Venue</label><input id="newVenue" value="Goodminton"></div>
-          <div><label>Capacity</label><input id="newCap" type="number" min="1" value="26"></div>
-          <div><label>Note</label><input id="newNote"></div>
-        </div>
-        <label class="check"><input id="newOpen" type="checkbox"> Open</label>
-        <label class="check"><input id="newOnlyOpen" type="checkbox"> Set as only open session</label>
-        <button id="createBtn" type="button">Create Session</button>
-        <div id="createMsg" class="message"></div>
+      <section class="admin-two-column">
+        <article class="admin-panel automation-panel">
+          <div class="admin-panel-heading">
+            <div>
+              <p class="admin-section-kicker">AUTOMATION</p>
+              <h2>每週自動化</h2>
+            </div>
+            <span class="admin-status-badge">MON 00:05</span>
+          </div>
+          <p class="admin-panel-copy">每逢 Brisbane 星期一 00:05，自動關閉舊場並處理下一個星期日。若該場已存在但為 CLOSED，會直接改為 OPEN；否則建立新場次。</p>
+          <button id="runAutoBtn" class="admin-primary-btn full" type="button">立即測試 Monday Automation</button>
+          <div id="autoMsg" class="admin-message"></div>
+        </article>
+
+        <article class="admin-panel">
+          <div class="admin-panel-heading">
+            <div>
+              <p class="admin-section-kicker">NEW SESSION</p>
+              <h2>新增單一場次</h2>
+            </div>
+          </div>
+
+          <div class="admin-form-grid">
+            <div><label class="admin-field-label" for="newDate">Date</label><input class="admin-input" id="newDate" type="date"></div>
+            <div><label class="admin-field-label" for="newStart">Start</label><input class="admin-input" id="newStart" value="17:00"></div>
+            <div><label class="admin-field-label" for="newEnd">End</label><input class="admin-input" id="newEnd" value="19:00"></div>
+            <div><label class="admin-field-label" for="newVenue">Venue</label><input class="admin-input" id="newVenue" value="Goodminton"></div>
+            <div><label class="admin-field-label" for="newCap">Capacity</label><input class="admin-input" id="newCap" type="number" min="1" value="26"></div>
+            <div><label class="admin-field-label" for="newNote">Note</label><input class="admin-input" id="newNote" placeholder="Optional"></div>
+          </div>
+
+          <div class="admin-check-row">
+            <label class="admin-check"><input id="newOpen" type="checkbox"> <span>Open</span></label>
+            <label class="admin-check"><input id="newOnlyOpen" type="checkbox"> <span>Set as only open session</span></label>
+          </div>
+          <button id="createBtn" class="admin-primary-btn full" type="button">Create Session</button>
+          <div id="createMsg" class="admin-message"></div>
+        </article>
       </section>
 
-      <section class="card">
-        <div class="section-title">
-          <h2>場次</h2>
-          <label class="check compact"><input id="showClosed" type="checkbox" checked> Show closed</label>
+      <section class="admin-panel sessions-panel">
+        <div class="admin-panel-heading responsive">
+          <div>
+            <p class="admin-section-kicker">SESSIONS</p>
+            <h2>場次管理</h2>
+          </div>
+          <label class="admin-toggle-label"><input id="showClosed" type="checkbox" checked><span>顯示 CLOSED</span></label>
         </div>
-        <div id="sessions"></div>
+        <div id="sessions" class="admin-session-list"></div>
       </section>
 
-      <section class="card">
-        <h2>Bookings</h2>
-        <div class="inline">
-          <select id="bookingSession"></select>
-          <button id="bookingLoadBtn" type="button">Load</button>
-        </div>
-        <div id="bookingSummary" class="summary"></div>
-        <div id="bookings"></div>
-      </section>
+      <section class="admin-two-column admin-operations">
+        <article class="admin-panel">
+          <div class="admin-panel-heading">
+            <div>
+              <p class="admin-section-kicker">BOOKINGS</p>
+              <h2>出席名單</h2>
+            </div>
+          </div>
+          <div class="admin-inline-control">
+            <select id="bookingSession" class="admin-input"></select>
+            <button id="bookingLoadBtn" class="admin-secondary-btn" type="button">Load</button>
+          </div>
+          <div id="bookingSummary" class="admin-booking-summary"></div>
+          <div id="bookings" class="admin-booking-list"></div>
+        </article>
 
-      <section class="card">
-        <h2>公告</h2>
-        <div class="inline">
-          <select id="announceSession"></select>
-          <button id="announceBtn" type="button">Generate</button>
-          <button id="copyBtn" type="button" class="secondary">Copy</button>
-        </div>
-        <textarea id="announcement" rows="8"></textarea>
-        <div id="announceMsg" class="message"></div>
+        <article class="admin-panel">
+          <div class="admin-panel-heading">
+            <div>
+              <p class="admin-section-kicker">ANNOUNCEMENT</p>
+              <h2>公告</h2>
+            </div>
+          </div>
+          <div class="admin-inline-control">
+            <select id="announceSession" class="admin-input"></select>
+            <button id="announceBtn" class="admin-secondary-btn" type="button">Generate</button>
+          </div>
+          <textarea id="announcement" class="admin-input admin-textarea" rows="8" placeholder="Generate an announcement..."></textarea>
+          <button id="copyBtn" type="button" class="admin-primary-btn full">Copy Announcement</button>
+          <div id="announceMsg" class="admin-message"></div>
+        </article>
       </section>
     </div>
   </main>
