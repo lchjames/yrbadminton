@@ -18,6 +18,11 @@
       "database_id": "57d61f13-2bfe-4e36-8c67-5295ab3a3a85"
     }
   ],
+  "secrets": {
+    "required": [
+      "ADMIN_KEY"
+    ]
+  },
   "triggers": {
     "crons": [
       "5 14 * * SUN"
