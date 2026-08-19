@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#111827">
   <title>YR Badminton RSVP</title>
   <link rel="stylesheet" href="/assets/style.css">
+  <link rel="stylesheet" href="/assets/rsvp-tabs.css">
 </head>
 <body class="rsvp-page">
   <main class="rsvp-shell">
@@ -28,8 +29,8 @@
           <span id="eventStateText" class="event-state">開放登記 / OPEN FOR RSVP</span>
         </div>
         <div class="session-picker-wrap">
-          <label class="session-picker-label" for="sessionSelect">選擇場次 / Select session</label>
-          <select id="sessionSelect" class="session-select" aria-label="選擇場次 / Select session"></select>
+          <div class="session-picker-label">選擇日期 / Select date</div>
+          <div id="sessionTabs" class="session-tabs" role="tablist" aria-label="選擇場次日期 / Select session date"></div>
         </div>
       </div>
 
@@ -56,7 +57,7 @@
           <strong id="remainingText"></strong>
         </div>
         <div class="capacity-track" aria-hidden="true">
-          <div id="capacityBar" class="capacity-fill" style="width:0%"></div>
+          <div id="capacityBar" class="capacity-fill capacity-green" style="width:0%"></div>
         </div>
       </div>
     </section>
