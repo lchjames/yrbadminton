@@ -1,6 +1,7 @@
 .session-picker-wrap {
   width: auto;
   max-width: 62%;
+  min-width: 0;
 }
 
 .session-picker-label {
@@ -22,6 +23,8 @@
 
 .session-tabs {
   display: flex;
+  width: 100%;
+  min-width: 0;
   justify-content: flex-end;
   gap: 8px;
   overflow-x: auto;
@@ -122,6 +125,7 @@
   .session-picker-wrap {
     width: 100%;
     max-width: none;
+    min-width: 0;
   }
 
   .session-picker-label {
@@ -132,9 +136,32 @@
     justify-content: flex-start;
     margin-right: -8px;
     padding-right: 8px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .session-tab {
     min-width: 82px;
+  }
+
+  /* Use a deterministic grid on mobile so iOS does not calculate the
+     date tile with a stale flex width during the first dynamic render. */
+  .event-main {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 14px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .date-tile {
+    width: 76px;
+    min-width: 76px;
+    max-width: 76px;
+    flex: none;
+  }
+
+  .event-details {
+    min-width: 0;
   }
 }
