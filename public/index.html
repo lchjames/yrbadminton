@@ -14,27 +14,30 @@
         <div class="brand-mark" aria-hidden="true">YR</div>
         <div>
           <p class="rsvp-kicker">YR BADMINTON</p>
-          <h1>打波登記 <span>RSVP</span></h1>
-          <p class="rsvp-subtitle">Sunday badminton · Goodminton</p>
+          <h1>羽毛球出席登記 <span>RSVP</span></h1>
+          <p class="rsvp-subtitle">星期日羽毛球活動 · Sunday badminton at Goodminton</p>
         </div>
       </div>
-      <a class="rsvp-admin-link" href="/admin">Admin</a>
+      <a class="rsvp-admin-link" href="/admin">管理後台 / Admin</a>
     </header>
 
     <section id="eventPanel" class="event-card">
       <div class="event-topline">
         <div>
-          <span class="live-dot"></span>
-          <span class="event-state">OPEN FOR RSVP</span>
+          <span id="liveDot" class="live-dot"></span>
+          <span id="eventStateText" class="event-state">開放登記 / OPEN FOR RSVP</span>
         </div>
-        <select id="sessionSelect" class="session-select" aria-label="選擇場次"></select>
+        <div class="session-picker-wrap">
+          <label class="session-picker-label" for="sessionSelect">選擇場次 / Select session</label>
+          <select id="sessionSelect" class="session-select" aria-label="選擇場次 / Select session"></select>
+        </div>
       </div>
 
       <div class="event-main">
         <div class="date-tile" aria-hidden="true">
           <span id="eventMonth" class="date-month">---</span>
           <strong id="eventDay" class="date-day">--</strong>
-          <span class="date-weekday">SUN</span>
+          <span id="eventWeekday" class="date-weekday">SUN</span>
         </div>
 
         <div class="event-details">
@@ -49,7 +52,7 @@
 
       <div class="capacity-block">
         <div class="capacity-copy">
-          <span id="capacityText">Loading attendance…</span>
+          <span id="capacityText">正在載入出席資料… / Loading attendance…</span>
           <strong id="remainingText"></strong>
         </div>
         <div class="capacity-track" aria-hidden="true">
@@ -63,30 +66,36 @@
         <div class="card-heading">
           <div>
             <p class="section-kicker">YOUR RSVP</p>
-            <h2>你今個星期嚟唔嚟？</h2>
+            <h2>出席狀態 / Attendance</h2>
+            <p class="form-intro">請選擇您的出席狀態並提交登記。<br><span>Please select your attendance status and submit your RSVP.</span></p>
           </div>
+        </div>
+
+        <div id="closedNotice" class="registration-notice hidden" role="status">
+          <strong>此場次目前尚未開放登記。</strong>
+          <span>This session is not currently open for registration.</span>
         </div>
 
         <form id="rsvpForm">
           <label class="field-label" for="name">姓名 / Name</label>
-          <input id="name" class="rsvp-input" maxlength="80" autocomplete="name" required placeholder="Enter your name">
+          <input id="name" class="rsvp-input" maxlength="80" autocomplete="name" required placeholder="請輸入姓名 / Enter your name">
 
-          <label class="field-label">狀態 / Status</label>
-          <div class="status-selector" role="radiogroup" aria-label="RSVP status">
+          <label class="field-label">出席狀態 / Attendance status</label>
+          <div class="status-selector" role="radiogroup" aria-label="出席狀態 / Attendance status">
             <label class="status-option status-yes">
               <input type="radio" name="status" value="YES" checked>
               <span class="status-symbol">✓</span>
-              <span><strong>YES</strong><small>我會嚟</small></span>
+              <span><strong>YES</strong><small>出席 / Attending</small></span>
             </label>
             <label class="status-option status-maybe">
               <input type="radio" name="status" value="MAYBE">
               <span class="status-symbol">?</span>
-              <span><strong>MAYBE</strong><small>未確定</small></span>
+              <span><strong>MAYBE</strong><small>尚未確定 / Not sure yet</small></span>
             </label>
             <label class="status-option status-no">
               <input type="radio" name="status" value="NO">
               <span class="status-symbol">×</span>
-              <span><strong>NO</strong><small>今次唔嚟</small></span>
+              <span><strong>NO</strong><small>不出席 / Not attending</small></span>
             </label>
           </div>
 
@@ -96,23 +105,23 @@
             <div>
               <label class="field-label" for="pax">人數 / Players</label>
               <div class="number-field">
-                <button id="paxMinus" class="number-btn" type="button" aria-label="Decrease players">−</button>
+                <button id="paxMinus" class="number-btn" type="button" aria-label="減少人數 / Decrease players">−</button>
                 <input id="pax" type="number" min="1" max="20" value="1" inputmode="numeric">
-                <button id="paxPlus" class="number-btn" type="button" aria-label="Increase players">+</button>
+                <button id="paxPlus" class="number-btn" type="button" aria-label="增加人數 / Increase players">+</button>
               </div>
             </div>
             <div>
               <label class="field-label" for="note">備註 / Note</label>
-              <input id="note" class="rsvp-input" maxlength="300" placeholder="Optional">
+              <input id="note" class="rsvp-input" maxlength="300" placeholder="選填 / Optional">
             </div>
           </div>
 
           <button id="submitBtn" class="primary-rsvp-btn" type="submit">
-            <span>確認登記</span>
+            <span>確認登記 / Submit RSVP</span>
             <span aria-hidden="true">→</span>
           </button>
 
-          <button id="cancelBtn" class="cancel-rsvp-btn" type="button">取消之前嘅出席 / Change to NO</button>
+          <button id="cancelBtn" class="cancel-rsvp-btn" type="button">更新為不出席 / Change to NO</button>
           <div id="msg" class="rsvp-message" role="status" aria-live="polite"></div>
         </form>
       </section>
@@ -120,10 +129,10 @@
       <section class="attendance-card">
         <div class="card-heading attendance-heading">
           <div>
-            <p class="section-kicker">WHO'S IN</p>
-            <h2>目前出席</h2>
+            <p class="section-kicker">ATTENDEES</p>
+            <h2>目前出席名單 / Attendees</h2>
           </div>
-          <button id="refreshBtn" class="round-refresh" type="button" aria-label="Refresh attendee list">↻</button>
+          <button id="refreshBtn" class="round-refresh" type="button" aria-label="重新整理出席名單 / Refresh attendee list">↻</button>
         </div>
 
         <div id="summary" class="attendance-summary"></div>
@@ -131,7 +140,7 @@
       </section>
     </div>
 
-    <footer class="rsvp-footer">YR Badminton · Sunday 17:00–19:00</footer>
+    <footer class="rsvp-footer">YR Badminton · 星期日 Sunday · 17:00–19:00</footer>
   </main>
 
   <script src="/assets/app.js"></script>
