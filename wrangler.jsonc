@@ -4,11 +4,13 @@
   "main": "src/index.js",
   "compatibility_date": "2026-08-19",
   "workers_dev": true,
+
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
   },
+
   "d1_databases": [
     {
       "binding": "DB",
@@ -16,9 +18,11 @@
       "database_id": "57d61f13-2bfe-4e36-8c67-5295ab3a3a85"
     }
   ],
+
   "triggers": {
-    "crons": ["5 14 * * 0"]
+    "crons": ["5 14 * * SUN"]
   },
+
   "observability": {
     "enabled": true
   }
