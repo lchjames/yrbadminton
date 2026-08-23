@@ -53,6 +53,11 @@
   border-color: rgba(255,255,255,.28);
 }
 
+.session-tab:focus-visible {
+  outline: 2px solid rgba(255,255,255,.9);
+  outline-offset: 2px;
+}
+
 .session-tab strong,
 .session-tab span {
   display: block;
@@ -85,6 +90,16 @@
   opacity: .62;
 }
 
+.session-tab-empty {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 2px 4px;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: right;
+}
+
 .capacity-fill.capacity-green {
   background: linear-gradient(90deg, #22c55e, #86efac);
 }
@@ -105,6 +120,51 @@
 .warning .warning-en {
   margin-top: 4px;
   color: #b45309;
+}
+
+/* Cross-browser layout hardening. Keep intrinsic control/text widths from
+   forcing the RSVP page or its cards wider than the viewport. */
+.rsvp-page {
+  overflow-x: hidden;
+}
+
+.rsvp-shell,
+.rsvp-hero,
+.rsvp-brand,
+.event-main,
+.event-details,
+.rsvp-grid-layout,
+.rsvp-form-card,
+.attendance-card,
+.rsvp-form-row > *,
+.status-option,
+.status-option > span:last-child,
+.capacity-copy > *,
+.meta-item {
+  min-width: 0;
+}
+
+.rsvp-brand {
+  flex: 1 1 auto;
+}
+
+.rsvp-admin-link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.status-selector {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.status-option {
+  overflow: hidden;
+}
+
+.status-option small,
+.meta-item > span:last-child,
+.capacity-copy > * {
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 700px) {
@@ -128,7 +188,8 @@
     min-width: 0;
   }
 
-  .session-picker-label {
+  .session-picker-label,
+  .session-tab-empty {
     text-align: left;
   }
 
@@ -163,5 +224,15 @@
 
   .event-details {
     min-width: 0;
+  }
+}
+
+@media (max-width: 650px) {
+  .status-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .rsvp-hero {
+    gap: 10px;
   }
 }
