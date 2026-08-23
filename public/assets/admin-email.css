@@ -34,3 +34,37 @@
   background: rgba(255,255,255,.12);
   color: #e2e8f0;
 }
+
+/* Prevent native mobile date controls from forcing admin grids wider than their cards. */
+.admin-form-grid > *,
+.admin-session-grid > * {
+  min-width: 0;
+}
+
+.admin-input {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+input.admin-input[type="date"] {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 620px) {
+  .admin-session-card,
+  .admin-session-grid,
+  .admin-session-grid > div {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-session-grid input.admin-input[type="date"] {
+    inline-size: 100%;
+    max-inline-size: 100%;
+  }
+}
