@@ -35,14 +35,50 @@
   color: #e2e8f0;
 }
 
-/* Prevent native mobile date controls from forcing admin grids wider than their cards. */
+/* Responsive hardening for all Admin panels. */
+.admin-page {
+  overflow-x: hidden;
+}
+
+.admin-toolbar-brand,
+.admin-toolbar-brand > div,
+.admin-panel-heading > div,
+.admin-session-header > div,
+.admin-booking-row > div,
+.admin-inline-control > *,
 .admin-form-grid > *,
 .admin-session-grid > * {
   min-width: 0;
 }
 
+.admin-toolbar-brand {
+  flex: 1 1 auto;
+}
+
+.admin-toolbar-actions,
+.admin-status-badge,
+.admin-session-pill,
+.admin-booking-pax {
+  flex: 0 0 auto;
+}
+
+.admin-status-badge,
+.admin-session-pill {
+  white-space: nowrap;
+}
+
+.admin-toolbar h1,
+.admin-stat-note,
+.admin-panel-copy,
+.admin-session-title,
+.admin-session-meta,
+.admin-booking-name {
+  overflow-wrap: anywhere;
+}
+
 .admin-input {
   box-sizing: border-box;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
 }
@@ -55,10 +91,34 @@ input.admin-input[type="date"] {
   box-sizing: border-box;
 }
 
+.admin-inline-control .admin-input {
+  flex: 1 1 auto;
+}
+
+.admin-inline-control button {
+  flex: 0 0 auto;
+}
+
+.admin-booking-row > div {
+  flex: 1 1 auto;
+}
+
+.admin-primary-btn:focus-visible,
+.admin-secondary-btn:focus-visible,
+.admin-ghost-btn:focus-visible,
+.admin-danger-btn:focus-visible,
+.admin-route-btn:focus-visible,
+.admin-back:focus-visible {
+  outline: 2px solid #64748b;
+  outline-offset: 2px;
+}
+
 @media (max-width: 620px) {
   .admin-session-card,
   .admin-session-grid,
-  .admin-session-grid > div {
+  .admin-session-grid > div,
+  .admin-toolbar-brand,
+  .admin-inline-control {
     min-width: 0;
     width: 100%;
   }
@@ -66,5 +126,16 @@ input.admin-input[type="date"] {
   .admin-session-grid input.admin-input[type="date"] {
     inline-size: 100%;
     max-inline-size: 100%;
+  }
+
+  .admin-session-header,
+  .admin-booking-row {
+    align-items: flex-start;
+  }
+
+  .admin-panel-heading,
+  .admin-panel-heading.compact {
+    min-width: 0;
+    gap: 10px;
   }
 }
