@@ -15,12 +15,13 @@
       && Number(currentRemaining) <= WAITLIST_EMAIL_VISIBLE_THRESHOLD;
     const required = needsWaitlistEmail();
 
-    // Normally show this optional notification field only when the session
-    // is close to full. `force` is used when a submission actually requires
-    // an email for the waiting list.
+    // Visibility is driven by session capacity, not by the currently selected
+    // attendance radio. Session tab changes intentionally reset attendance,
+    // but the email field should remain visible whenever the open session has
+    // two or fewer spaces remaining. It only becomes required when this RSVP
+    // would actually enter the waiting list.
     const show = force || (
       session?.isOpen
-      && isYes
       && !nameIsConfirmed
       && nearCapacity
     );
