@@ -41,8 +41,13 @@ export async function sendEmail(env, { to = DEFAULT_ALERT_EMAIL_TO, subject, tex
     throw new Error(result?.error || `Google mail relay failed (HTTP ${response.status})`);
   }
 
+  const deliveredTo = String(result.to || recipient).trim();
+  if (deliveredTo.toLowerCase() !== recipient.toLowerCase()) {
+    throw new Error(`Google mail relay recipient mismatch: requested ${recipient}, delivered ${deliveredTo}`);
+  }
+
   return {
-    to: result.to || recipient,
+    to: deliveredTo,
     from: result.from || DEFAULT_ALERT_EMAIL_FROM
   };
 }
