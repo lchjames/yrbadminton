@@ -21,6 +21,11 @@ function adminAuthorised(request, env) {
   return (request.headers.get("x-admin-key") || "") === expected;
 }
 
+function validEmail(value) {
+  const email = String(value || "").trim().toLowerCase().slice(0, 254);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+}
+
 function slug(value) {
   return String(value || "")
     .toLowerCase()
@@ -185,6 +190,59 @@ async function sendManualTestEmail(env) {
   };
 }
 
+async function sendManualWaitlistTestEmail(env, recipient) {
+  const to = validEmail(recipient);
+  if (!to) throw new Error("Please enter a valid email address");
+
+  const session = await getOpenUpcomingSession(env.DB);
+  const date = session?.event_date || "TEST SESSION";
+  const start = session?.start_time || "17:00";
+  const end = session?.end_time || "19:00";
+  const venue = session?.venue || "Goodminton";
+
+  const subject = `YR Badminton — Waitlist Promotion Test (${date})`;
+  const text = [
+    "YR Badminton 候補補位通知測試。",
+    "YR Badminton waitlist promotion email test.",
+    "",
+    "候補名單已有空位，你已自動升級為正式出席。",
+    "A space became available and you have been automatically moved from the waiting list to the confirmed attendance list.",
+    "",
+    `Date: ${date}`,
+    `Time: ${start}–${end}`,
+    `Venue: ${venue}`,
+    "Players: 1",
+    "",
+    "You do not need to confirm again.",
+    "如果未能出席，請到網站將狀態更新為 NO。",
+    "",
+    "https://yrbadminton.lchjames.com/",
+    "",
+    "[TEST EMAIL — no booking was changed]"
+  ].join("\n");
+
+  const html = `
+    <h2>YR Badminton — 候補補位測試 / Waitlist Promotion Test</h2>
+    <p>候補名單已有空位，你已<strong>自動升級為正式出席</strong>。<br>
+    A space became available and you have been <strong>automatically moved to the confirmed attendance list</strong>.</p>
+    <p><strong>Date:</strong> ${htmlEscape(date)}<br>
+    <strong>Time:</strong> ${htmlEscape(start)}–${htmlEscape(end)}<br>
+    <strong>Venue:</strong> ${htmlEscape(venue)}<br>
+    <strong>Players:</strong> 1</p>
+    <p>You do not need to confirm again. 如果未能出席，請到網站將狀態更新為 NO。</p>
+    <p><a href="https://yrbadminton.lchjames.com/">Open YR Badminton RSVP</a></p>
+    <hr>
+    <p><small><strong>TEST EMAIL</strong> — no booking or waiting-list record was changed.</small></p>
+  `;
+
+  const delivery = await sendEmail(env, { to, subject, text, html });
+  return {
+    action: "waitlist_test_email_sent",
+    ...delivery,
+    session: session?.event_date || null
+  };
+}
+
 async function sendLowRegistrationReminder(env) {
   const session = await getOpenUpcomingSession(env.DB);
   if (!session) return { action: "no_open_session" };
@@ -262,6 +320,22 @@ export default {
         const message = String(error?.message || error || "Email sending failed").trim();
         console.error("Manual test email failed:", message);
         return json({ ok: false, error: message || "Email sending failed" }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/test-waitlist-email" && request.method === "POST") {
+      if (!adminAuthorised(request, env)) {
+        return json({ ok: false, error: "unauthorised" }, 401);
+      }
+
+      try {
+        const payload = await request.json();
+        const result = await sendManualWaitlistTestEmail(env, payload?.to);
+        return json({ ok: true, ...result });
+      } catch (error) {
+        const message = String(error?.message || error || "Waitlist email test failed").trim();
+        console.error("Manual waitlist email test failed:", message);
+        return json({ ok: false, error: message || "Waitlist email test failed" }, 500);
       }
     }
 
