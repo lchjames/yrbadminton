@@ -2,6 +2,9 @@ const API = "/api/";
 const $ = id => document.getElementById(id);
 let sessions = [];
 let selectedSessionId = "";
+let currentRemaining = 0;
+let currentWaitlistCount = 0;
+let confirmedNameKeys = new Set();
 
 const MAYBE_LINES = [
   {
@@ -30,6 +33,27 @@ function esc(s) {
   }[c]));
 }
 
+function localNameKey(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-AU");
+}
+
+function ensureWaitlistEmailField() {
+  if ($("waitlistEmailWrap")) return;
+  const row = document.querySelector(".rsvp-form-row");
+  if (!row) return;
+
+  const wrap = document.createElement("div");
+  wrap.id = "waitlistEmailWrap";
+  wrap.className = "waitlist-email-wrap hidden";
+  wrap.innerHTML = `
+    <label class="field-label" for="waitlistEmail">候補通知電郵 / Waiting list email</label>
+    <input id="waitlistEmail" class="rsvp-input" type="email" maxlength="254" autocomplete="email"
+           placeholder="your@email.com">
+    <p class="waitlist-email-note">只有進入候補名單時才需要。當有空位並自動補位後，系統會寄 Email 通知您。<br><span>Required only for the waiting list. We will email you if a space opens and you are automatically promoted.</span></p>
+  `;
+  row.insertAdjacentElement("afterend", wrap);
+}
+
 function nextMaybeLine() {
   currentMaybeLine = MAYBE_LINES[maybeLineIndex % MAYBE_LINES.length];
   maybeLineIndex++;
@@ -41,7 +65,12 @@ async function get(params) {
   Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
   const r = await fetch(u, { cache: "no-store" });
   const j = await r.json();
-  if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  if (!r.ok || !j.ok) {
+    const error = new Error(j.error || `HTTP ${r.status}`);
+    error.data = j;
+    error.status = r.status;
+    throw error;
+  }
   return j;
 }
 
@@ -52,7 +81,12 @@ async function post(body) {
     body: JSON.stringify(body)
   });
   const j = await r.json();
-  if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  if (!r.ok || !j.ok) {
+    const error = new Error(j.error || `HTTP ${r.status}`);
+    error.data = j;
+    error.status = r.status;
+    throw error;
+  }
   return j;
 }
 
@@ -122,10 +156,14 @@ function resetAttendanceStatus() {
   $("cancelBtn").hidden = true;
   $("submitBtn").disabled = true;
   $("submitBtn").querySelector("span:first-child").textContent = "請選擇出席狀態 / Select attendance";
+  updateWaitlistEmailUI();
 }
 
 function setEmptyState() {
   selectedSessionId = "";
+  currentRemaining = 0;
+  currentWaitlistCount = 0;
+  confirmedNameKeys = new Set();
   $("sessionTabs").innerHTML = '<div class="session-tab-empty">目前沒有未來場次 / No upcoming sessions</div>';
   $("eventPanel").classList.add("event-closed");
   $("liveDot").classList.add("closed");
@@ -231,12 +269,18 @@ function applyCapacityZone(used) {
 
 function renderAttendance(data) {
   const confirmed = data.current.filter(x => x.status === "YES" && x.placement === "CONFIRMED");
+  const waiting = data.current.filter(x => x.placement === "WAITLIST");
   const used = Number(data.summary.confirmedPax || 0);
   const cap = Number(data.summary.cap || 0);
   const remaining = Number(data.summary.remaining || 0);
+  const waitlistCount = Number(data.summary.waitlistCount || waiting.length || 0);
   const pct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
 
-  $("capacityText").innerHTML = `<strong>${used}</strong> / ${cap} 人已登記 · registered`;
+  currentRemaining = remaining;
+  currentWaitlistCount = waitlistCount;
+  confirmedNameKeys = new Set(confirmed.map(x => localNameKey(x.name)));
+
+  $("capacityText").innerHTML = `<strong>${used}</strong> / ${cap} 人已登記 · registered${waitlistCount ? ` · ${waitlistCount} waiting` : ""}`;
   $("remainingText").textContent = remaining > 0
     ? `尚餘 ${remaining} 個名額 / ${remaining} remaining`
     : "名額已滿 / FULL";
@@ -247,25 +291,48 @@ function renderAttendance(data) {
     <div class="summary-stat"><strong>${used}</strong><span>已登記 / Registered</span></div>
     <div class="summary-divider"></div>
     <div class="summary-stat"><strong>${remaining}</strong><span>尚餘 / Remaining</span></div>
+    ${waitlistCount ? `
+      <div class="summary-divider"></div>
+      <div class="summary-stat waitlist-summary-stat"><strong>${waitlistCount}</strong><span>候補 / Waiting</span></div>
+    ` : ""}
   `;
 
-  if (!confirmed.length) {
+  if (!confirmed.length && !waiting.length) {
     $("list").innerHTML = `
       <div class="empty-state">
         <span class="empty-icon">🏸</span>
         <strong>目前尚未有人登記</strong>
         <span>No attendees have registered yet.</span>
       </div>`;
+    updateWaitlistEmailUI();
     return;
   }
 
-  $("list").innerHTML = confirmed.map((x, index) => `
+  const confirmedHtml = confirmed.map((x, index) => `
     <div class="user-attendee">
       <span class="attendee-number">${index + 1}</span>
       <span class="attendee-name">${esc(x.name)}</span>
       ${Number(x.pax) > 1 ? `<span class="pax-badge">+${Number(x.pax) - 1}</span>` : ""}
     </div>
   `).join("");
+
+  const waitingHtml = waiting.length ? `
+    <div class="waitlist-divider">
+      <span>候補名單 / Waiting List</span>
+      <strong>${waiting.length}</strong>
+    </div>
+    ${waiting.map((x, index) => `
+      <div class="user-attendee waitlist-attendee">
+        <span class="attendee-number waitlist-number">W${Number(x.waitlistPosition || index + 1)}</span>
+        <span class="attendee-name">${esc(x.name)}</span>
+        ${Number(x.pax) > 1 ? `<span class="pax-badge waitlist-pax">+${Number(x.pax) - 1}</span>` : ""}
+        <span class="waitlist-badge">WAITLIST #${Number(x.waitlistPosition || index + 1)}</span>
+      </div>
+    `).join("")}
+  ` : "";
+
+  $("list").innerHTML = confirmedHtml + waitingHtml;
+  updateWaitlistEmailUI();
 }
 
 async function loadList() {
@@ -288,6 +355,29 @@ function renderMaybeWarning() {
   `;
 }
 
+function needsWaitlistEmail() {
+  const session = selectedSession();
+  if (!session?.isOpen || chosenStatus() !== "YES") return false;
+  const nameIsConfirmed = confirmedNameKeys.has(localNameKey($("name").value));
+  if (nameIsConfirmed) return false;
+  const pax = Math.max(1, Number($("pax").value || 1));
+  return currentWaitlistCount > 0 || pax > currentRemaining;
+}
+
+function updateWaitlistEmailUI(force = false) {
+  const wrap = $("waitlistEmailWrap");
+  const input = $("waitlistEmail");
+  if (!wrap || !input) return;
+
+  const show = force || needsWaitlistEmail();
+  wrap.classList.toggle("hidden", !show);
+  input.required = show;
+
+  if (show && chosenStatus() === "YES") {
+    $("submitBtn").querySelector("span:first-child").textContent = "加入候補名單 / Join Waiting List";
+  }
+}
+
 function updateStatusUI() {
   const session = selectedSession();
   const status = chosenStatus();
@@ -300,6 +390,7 @@ function updateStatusUI() {
   if (!session?.isOpen) {
     submit.disabled = true;
     cancel.hidden = true;
+    updateWaitlistEmailUI();
     return;
   }
 
@@ -307,6 +398,7 @@ function updateStatusUI() {
     submit.disabled = true;
     cancel.hidden = true;
     submit.querySelector("span:first-child").textContent = "請選擇出席狀態 / Select attendance";
+    updateWaitlistEmailUI();
     return;
   }
 
@@ -323,6 +415,8 @@ function updateStatusUI() {
     submit.querySelector("span:first-child").textContent = "MAYBE 不會提交 / MAYBE is not submitted";
     submit.disabled = true;
   }
+
+  updateWaitlistEmailUI();
 }
 
 function changePax(delta) {
@@ -331,9 +425,11 @@ function changePax(delta) {
   const max = Number(input.max || 20);
   const next = Math.max(min, Math.min(max, Number(input.value || 1) + delta));
   input.value = String(next);
+  updateStatusUI();
 }
 
 async function init() {
+  ensureWaitlistEmailField();
   const d = await get({ action: "sessions" });
   sessions = d.sessions || [];
   renderSessions();
@@ -363,6 +459,8 @@ $("refreshBtn").addEventListener("click", async () => {
 
 $("paxMinus").addEventListener("click", () => changePax(-1));
 $("paxPlus").addEventListener("click", () => changePax(1));
+$("pax").addEventListener("input", updateStatusUI);
+$("name").addEventListener("input", updateWaitlistEmailUI);
 
 document.querySelectorAll('input[name="status"]').forEach(r => {
   r.addEventListener("change", () => {
@@ -393,30 +491,51 @@ $("rsvpForm").addEventListener("submit", async e => {
     return;
   }
 
+  if (needsWaitlistEmail() && !$("waitlistEmail").value.trim()) {
+    updateWaitlistEmailUI(true);
+    showMessage("候補名單需要 Email，以便有空位時通知您。 / Email is required for the waiting list.", "error");
+    $("waitlistEmail").focus();
+    return;
+  }
+
   const btn = $("submitBtn");
   btn.disabled = true;
   btn.classList.add("is-loading");
   showMessage("正在提交… / Updating…");
 
   try {
-    await post({
+    const result = await post({
       action: "rsvp",
       sessionId: session.sessionId,
       name,
       status,
       pax: Number($("pax").value || 1),
-      note: $("note").value
+      note: $("note").value,
+      email: $("waitlistEmail")?.value || ""
     });
 
-    showMessage(
-      status === "YES"
-        ? "✓ 登記成功。 / RSVP submitted successfully."
-        : "✓ 已更新為不出席。 / Attendance updated to NO.",
-      "success"
-    );
+    if (result.placement === "WAITLIST") {
+      showMessage(
+        `✓ 已加入候補名單 #${Number(result.waitlistPosition || 1)}。有空位時會自動補位並寄 Email 通知。 / Added to waiting list #${Number(result.waitlistPosition || 1)}. We will email you if you are automatically promoted.`,
+        "success"
+      );
+    } else {
+      showMessage(
+        status === "YES"
+          ? "✓ 登記成功。 / RSVP submitted successfully."
+          : "✓ 已更新為不出席。 / Attendance updated to NO.",
+        "success"
+      );
+    }
     await loadList();
   } catch (err) {
-    showMessage(err.message === "full" ? "名額已滿。 / Session is full." : err.message, "error");
+    if (err.message === "waitlist_email_required") {
+      updateWaitlistEmailUI(true);
+      showMessage("名額已滿或前方已有候補。請輸入 Email 加入候補名單。 / Please enter an email to join the waiting list.", "error");
+      $("waitlistEmail").focus();
+    } else {
+      showMessage(err.message, "error");
+    }
   } finally {
     btn.classList.remove("is-loading");
     setTimeout(updateStatusUI, 800);
@@ -429,6 +548,7 @@ $("cancelBtn").addEventListener("click", () => {
   $("rsvpForm").requestSubmit();
 });
 
+ensureWaitlistEmailField();
 updateStatusUI();
 init().catch(e => {
   showMessage(`載入失敗：${e.message} / Failed to load: ${e.message}`, "error");
