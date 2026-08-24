@@ -9,7 +9,9 @@
     const session = selectedSession();
     const isYes = chosenStatus() === "YES";
     const nameIsConfirmed = confirmedNameKeys.has(localNameKey($("name").value));
-    const nearCapacity = Number.isFinite(Number(currentRemaining))
+    const hasCapacityData = Boolean($("summary")?.children.length);
+    const nearCapacity = hasCapacityData
+      && Number.isFinite(Number(currentRemaining))
       && Number(currentRemaining) <= WAITLIST_EMAIL_VISIBLE_THRESHOLD;
     const required = needsWaitlistEmail();
 
