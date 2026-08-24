@@ -1,10 +1,9 @@
-import app from "./index.js";
+import app, { retryPendingWaitlistEmails } from "./index.js";
+import { sendEmail } from "./mail.js";
 
 const MONDAY_AUTO_OPEN_CRON = "5 14 * * SUN";
 const THURSDAY_REMINDER_CRON = "0 12 * * THU";
 const LOW_REG_THRESHOLD = 20;
-const ALERT_EMAIL_TO = "apswsttss@gmail.com";
-const ALERT_EMAIL_FROM = "badyrminton@gmail.com";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -106,18 +105,13 @@ async function getOpenUpcomingSession(db) {
 }
 
 async function getRegistrationSummary(db, session) {
-  const { results = [] } = await db.prepare(`
-    SELECT status, pax
+  const row = await db.prepare(`
+    SELECT COALESCE(SUM(pax), 0) AS registered
     FROM bookings
-    WHERE session_id = ?
-    ORDER BY updated_at ASC, id ASC
-  `).bind(session.id).run();
+    WHERE session_id = ? AND status = 'YES'
+  `).bind(session.id).first();
 
-  let registered = 0;
-  for (const row of results) {
-    if (row.status === "YES") registered += Math.max(1, Number(row.pax) || 1);
-  }
-
+  const registered = Math.max(0, Number(row?.registered) || 0);
   const capacity = Number(session.capacity) || 26;
   return {
     registered,
@@ -134,49 +128,6 @@ function htmlEscape(value) {
     '"': "&quot;",
     "'": "&#039;"
   }[c]));
-}
-
-async function sendEmail(env, { subject, text, html }) {
-  const webhookUrl = String(env.MAIL_WEBHOOK_URL || "").trim();
-  const webhookSecret = String(env.MAIL_WEBHOOK_SECRET || "").trim();
-
-  if (!webhookUrl) throw new Error("MAIL_WEBHOOK_URL is not configured");
-  if (!webhookSecret) throw new Error("MAIL_WEBHOOK_SECRET is not configured");
-
-  let response;
-  try {
-    response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        secret: webhookSecret,
-        subject,
-        text,
-        html
-      }),
-      redirect: "follow"
-    });
-  } catch (error) {
-    throw new Error(`Google mail relay request failed: ${error?.message || error}`);
-  }
-
-  const raw = await response.text();
-  let result;
-  try {
-    result = JSON.parse(raw);
-  } catch {
-    const preview = raw.replace(/\s+/g, " ").slice(0, 180);
-    throw new Error(`Google mail relay returned non-JSON response (HTTP ${response.status}): ${preview || "empty response"}`);
-  }
-
-  if (!response.ok || !result?.ok) {
-    throw new Error(result?.error || `Google mail relay failed (HTTP ${response.status})`);
-  }
-
-  return {
-    to: result.to || ALERT_EMAIL_TO,
-    from: result.from || ALERT_EMAIL_FROM
-  };
 }
 
 async function sendManualTestEmail(env) {
@@ -274,19 +225,25 @@ async function sendLowRegistrationReminder(env) {
 }
 
 async function runScheduled(controller, env) {
+  let result;
   switch (controller.cron) {
     case MONDAY_AUTO_OPEN_CRON:
       await closePastSessions(env);
-      return createOrOpenNextSunday(env);
+      result = await createOrOpenNextSunday(env);
+      break;
 
     case THURSDAY_REMINDER_CRON:
       await closePastSessions(env);
-      return sendLowRegistrationReminder(env);
+      result = await sendLowRegistrationReminder(env);
+      break;
 
     default:
       console.log("Unknown cron trigger:", controller.cron);
-      return { action: "ignored" };
+      result = { action: "ignored" };
   }
+
+  const waitlistEmailRetry = await retryPendingWaitlistEmails(env);
+  return { ...result, waitlistEmailRetry };
 }
 
 export default {
