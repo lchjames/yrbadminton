@@ -1,0 +1,186 @@
+.admin-booking-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-booking-summary-grid > div {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid #e5e9ef;
+  border-radius: 12px;
+  background: #fbfcfd;
+}
+
+.admin-booking-summary-grid strong,
+.admin-booking-summary-grid span {
+  display: block;
+}
+
+.admin-booking-summary-grid strong {
+  color: #111827;
+  font-size: 17px;
+}
+
+.admin-booking-summary-grid span {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.admin-booking-summary-grid .has-waiting {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.admin-booking-group {
+  margin-top: 14px;
+}
+
+.admin-booking-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.admin-booking-group-heading > div {
+  min-width: 0;
+}
+
+.admin-booking-group-heading strong,
+.admin-booking-group-heading span {
+  display: block;
+}
+
+.admin-booking-group-heading strong {
+  color: #111827;
+  font-size: 13px;
+}
+
+.admin-booking-group-heading > div > span {
+  margin-top: 1px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.admin-booking-group-count {
+  flex: 0 0 auto;
+  min-width: 28px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.admin-booking-group-waiting .admin-booking-group-count {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-booking-group-list {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-booking-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-booking-name-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-booking-state-badge {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+
+.admin-booking-state-badge.confirmed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-booking-state-badge.waiting {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-booking-state-badge.no {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.admin-booking-state-badge.review {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-booking-waitlist-row {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.admin-waitlist-position {
+  flex: 0 0 auto;
+  min-width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.admin-booking-email,
+.admin-booking-note {
+  display: block;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.admin-booking-email {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.admin-booking-email:hover {
+  text-decoration: underline;
+}
+
+.admin-booking-email.missing,
+.admin-booking-note {
+  color: #94a3b8;
+}
+
+@media (max-width: 620px) {
+  .admin-booking-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-booking-waitlist-row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    align-items: start;
+  }
+}
