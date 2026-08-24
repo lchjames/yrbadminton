@@ -41,6 +41,11 @@
   margin-bottom: 16px;
 }
 
+.admin-testing-panel .admin-status-badge.neutral {
+  background: #eef2f7;
+  color: #475569;
+}
+
 .admin-testing-intro {
   max-width: 760px;
   margin: -4px 0 18px;
