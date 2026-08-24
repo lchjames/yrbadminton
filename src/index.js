@@ -1,7 +1,11 @@
+import { sendEmail } from "./mail.js";
+
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store"
 };
+
+let waitlistSchemaReady = false;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
@@ -17,6 +21,11 @@ function normName(value) {
 
 function nameKey(value) {
   return normName(value).toLocaleLowerCase("en-AU");
+}
+
+function validEmail(value) {
+  const email = cleanText(value, 254).toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
 }
 
 function isISODate(value) {
@@ -45,9 +54,48 @@ function makePublicId(date, start, venue) {
   return `${date}-${start.replace(":", "")}-${slug(venue) || "court"}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
+function htmlEscape(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[c]));
+}
+
 async function requireDB(env) {
   if (!env.DB) throw new Error("D1 binding DB is not configured");
   return env.DB;
+}
+
+async function ensureWaitlistSchema(db) {
+  if (waitlistSchemaReady) return;
+  await db.batch([
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS waitlist (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        name_key TEXT NOT NULL,
+        pax INTEGER NOT NULL DEFAULT 1 CHECK (pax >= 1),
+        email TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'WAITING' CHECK (status IN ('WAITING', 'PROMOTED', 'CANCELLED')),
+        promoted_at TEXT,
+        notified_at TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(session_id, name_key),
+        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+      )
+    `),
+    db.prepare(`
+      CREATE INDEX IF NOT EXISTS idx_waitlist_session_status
+      ON waitlist(session_id, status, created_at, id)
+    `)
+  ]);
+  waitlistSchemaReady = true;
 }
 
 function adminAuthorised(request, env) {
@@ -62,7 +110,7 @@ async function getSetting(db, key, fallback) {
 }
 
 async function getSessionByPublicId(db, publicId) {
-  return await db.prepare(`
+  return db.prepare(`
     SELECT id, public_id, title, event_date, start_time, end_time,
            venue, capacity, note, is_open, created_at, updated_at
     FROM sessions
@@ -92,8 +140,25 @@ async function listSessions(db, includeClosed = true) {
   return results.map(publicSession);
 }
 
-async function currentBookings(db, sessionRow) {
-  const { results = [] } = await db.prepare(`
+async function confirmedPax(db, sessionId, excludingNameKey = "") {
+  const row = excludingNameKey
+    ? await db.prepare(`
+        SELECT COALESCE(SUM(pax), 0) AS used
+        FROM bookings
+        WHERE session_id = ? AND status = 'YES' AND name_key <> ?
+      `).bind(sessionId, excludingNameKey).first()
+    : await db.prepare(`
+        SELECT COALESCE(SUM(pax), 0) AS used
+        FROM bookings
+        WHERE session_id = ? AND status = 'YES'
+      `).bind(sessionId).first();
+  return Math.max(0, Number(row?.used) || 0);
+}
+
+async function currentBookings(db, sessionRow, includePrivate = false) {
+  await ensureWaitlistSchema(db);
+
+  const { results: bookingRows = [] } = await db.prepare(`
     SELECT name, status, pax, note, created_at, updated_at
     FROM bookings
     WHERE session_id = ?
@@ -102,7 +167,7 @@ async function currentBookings(db, sessionRow) {
 
   let used = 0;
   const current = [];
-  for (const r of results) {
+  for (const r of bookingRows) {
     const pax = Math.max(1, Number(r.pax) || 1);
     let placement = "NO";
     if (r.status === "YES") {
@@ -123,18 +188,165 @@ async function currentBookings(db, sessionRow) {
     });
   }
 
+  const { results: waitingRows = [] } = await db.prepare(`
+    SELECT name, pax, email, note, created_at, updated_at
+    FROM waitlist
+    WHERE session_id = ? AND status = 'WAITING'
+    ORDER BY created_at ASC, id ASC
+  `).bind(sessionRow.id).run();
+
+  waitingRows.forEach((r, index) => {
+    const item = {
+      name: r.name,
+      status: "YES",
+      pax: Math.max(1, Number(r.pax) || 1),
+      note: r.note || "",
+      timestamp: r.created_at,
+      placement: "WAITLIST",
+      waitlistPosition: index + 1
+    };
+    if (includePrivate) item.email = r.email;
+    current.push(item);
+  });
+
   return {
     current,
     summary: {
       cap: Number(sessionRow.capacity),
       confirmedPax: used,
-      remaining: Math.max(0, Number(sessionRow.capacity) - used)
+      remaining: Math.max(0, Number(sessionRow.capacity) - used),
+      waitlistCount: waitingRows.length,
+      waitlistPax: waitingRows.reduce((sum, r) => sum + Math.max(1, Number(r.pax) || 1), 0)
     }
   };
 }
 
+async function sendPromotionNotification(env, db, row) {
+  if (!row?.email || row.notified_at) return false;
+
+  const subject = `YR Badminton — You are now confirmed (${row.event_date})`;
+  const text = [
+    `你好 ${row.name}，`,
+    "候補名單已有空位，你已自動升級為正式出席。",
+    "A space became available and you have been automatically moved from the waiting list to the confirmed attendance list.",
+    "",
+    `Date: ${row.event_date}`,
+    `Time: ${row.start_time}–${row.end_time}`,
+    `Venue: ${row.venue}`,
+    `Players: ${row.pax}`,
+    "",
+    "You do not need to confirm again.",
+    "如果未能出席，請到網站將狀態更新為 NO。",
+    "",
+    "https://yrbadminton.lchjames.com/"
+  ].join("\n");
+
+  const html = `
+    <h2>YR Badminton — 已成功補位 / You are confirmed</h2>
+    <p>你好 ${htmlEscape(row.name)}，</p>
+    <p>候補名單已有空位，你已<strong>自動升級為正式出席</strong>。<br>
+    A space became available and you have been <strong>automatically moved to the confirmed attendance list</strong>.</p>
+    <p><strong>Date:</strong> ${htmlEscape(row.event_date)}<br>
+    <strong>Time:</strong> ${htmlEscape(row.start_time)}–${htmlEscape(row.end_time)}<br>
+    <strong>Venue:</strong> ${htmlEscape(row.venue)}<br>
+    <strong>Players:</strong> ${Number(row.pax)}</p>
+    <p>You do not need to confirm again. 如果未能出席，請到網站將狀態更新為 NO。</p>
+    <p><a href="https://yrbadminton.lchjames.com/">Open YR Badminton RSVP</a></p>
+  `;
+
+  await sendEmail(env, { to: row.email, subject, text, html });
+  await db.prepare(`
+    UPDATE waitlist SET notified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+  `).bind(row.id).run();
+  return true;
+}
+
+async function promoteWaitlist(env, db, sessionRow) {
+  await ensureWaitlistSchema(db);
+  const used = await confirmedPax(db, sessionRow.id);
+  let remaining = Math.max(0, Number(sessionRow.capacity) - used);
+  const promoted = [];
+
+  const { results: waiting = [] } = await db.prepare(`
+    SELECT id, name, name_key, pax, email, note, created_at
+    FROM waitlist
+    WHERE session_id = ? AND status = 'WAITING'
+    ORDER BY created_at ASC, id ASC
+  `).bind(sessionRow.id).run();
+
+  for (const row of waiting) {
+    const pax = Math.max(1, Number(row.pax) || 1);
+    if (pax > remaining) break;
+
+    await db.batch([
+      db.prepare(`
+        INSERT INTO bookings(session_id, name, name_key, status, pax, note)
+        VALUES (?, ?, ?, 'YES', ?, ?)
+        ON CONFLICT(session_id, name_key)
+        DO UPDATE SET
+          name = excluded.name,
+          status = 'YES',
+          pax = excluded.pax,
+          note = excluded.note,
+          updated_at = CURRENT_TIMESTAMP
+      `).bind(sessionRow.id, row.name, row.name_key, pax, row.note || ""),
+      db.prepare(`
+        UPDATE waitlist
+        SET status = 'PROMOTED', promoted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status = 'WAITING'
+      `).bind(row.id)
+    ]);
+
+    remaining -= pax;
+    promoted.push({
+      ...row,
+      pax,
+      event_date: sessionRow.event_date,
+      start_time: sessionRow.start_time,
+      end_time: sessionRow.end_time,
+      venue: sessionRow.venue,
+      notified_at: null
+    });
+  }
+
+  for (const row of promoted) {
+    try {
+      await sendPromotionNotification(env, db, row);
+    } catch (error) {
+      console.error("Waitlist promotion email failed:", row.email, error?.message || error);
+    }
+  }
+
+  return promoted;
+}
+
+export async function retryPendingWaitlistEmails(env) {
+  const db = await requireDB(env);
+  await ensureWaitlistSchema(db);
+  const { results = [] } = await db.prepare(`
+    SELECT w.id, w.name, w.pax, w.email, w.notified_at,
+           s.event_date, s.start_time, s.end_time, s.venue
+    FROM waitlist w
+    JOIN sessions s ON s.id = w.session_id
+    WHERE w.status = 'PROMOTED' AND w.notified_at IS NULL
+    ORDER BY w.promoted_at ASC, w.id ASC
+    LIMIT 50
+  `).run();
+
+  let sent = 0;
+  for (const row of results) {
+    try {
+      if (await sendPromotionNotification(env, db, row)) sent++;
+    } catch (error) {
+      console.error("Pending waitlist email retry failed:", row.email, error?.message || error);
+    }
+  }
+  return { pendingChecked: results.length, sent };
+}
+
 async function handlePublicGet(url, env) {
   const db = await requireDB(env);
+  await ensureWaitlistSchema(db);
   const action = (url.searchParams.get("action") || "").toLowerCase();
 
   if (action === "health") {
@@ -158,13 +370,42 @@ async function handlePublicGet(url, env) {
   return json({ ok: false, error: "unknown action" }, 404);
 }
 
-async function upsertRSVP(db, payload) {
+async function upsertWaiting(db, session, { name, key, pax, email, note }) {
+  await db.prepare(`
+    INSERT INTO waitlist(session_id, name, name_key, pax, email, note, status)
+    VALUES (?, ?, ?, ?, ?, ?, 'WAITING')
+    ON CONFLICT(session_id, name_key)
+    DO UPDATE SET
+      name = excluded.name,
+      pax = excluded.pax,
+      email = excluded.email,
+      note = excluded.note,
+      status = 'WAITING',
+      promoted_at = NULL,
+      notified_at = NULL,
+      created_at = CASE WHEN waitlist.status = 'WAITING' THEN waitlist.created_at ELSE CURRENT_TIMESTAMP END,
+      updated_at = CURRENT_TIMESTAMP
+  `).bind(session.id, name, key, pax, email, note).run();
+
+  const { results = [] } = await db.prepare(`
+    SELECT name_key FROM waitlist
+    WHERE session_id = ? AND status = 'WAITING'
+    ORDER BY created_at ASC, id ASC
+  `).bind(session.id).run();
+  const position = results.findIndex(r => r.name_key === key) + 1;
+  return Math.max(1, position);
+}
+
+async function upsertRSVP(db, payload, env) {
+  await ensureWaitlistSchema(db);
+
   const sessionId = cleanText(payload.sessionId, 120);
   const name = normName(payload.name);
   const key = nameKey(name);
   const status = String(payload.status || "").toUpperCase();
   const pax = Math.max(1, Math.min(20, Number(payload.pax) || 1));
   const note = cleanText(payload.note, 300);
+  const email = validEmail(payload.email);
 
   if (!sessionId || !name || !status) return { status: 400, body: { ok: false, error: "missing fields" } };
   if (status === "MAYBE") return { status: 400, body: { ok: false, error: "MAYBE is not stored" } };
@@ -174,44 +415,99 @@ async function upsertRSVP(db, payload) {
   if (!session) return { status: 404, body: { ok: false, error: "session not found" } };
   if (Number(session.is_open) !== 1) return { status: 409, body: { ok: false, error: "session is closed" } };
 
-  if (status === "YES") {
-    const { results = [] } = await db.prepare(`
-      SELECT name_key, status, pax
-      FROM bookings
-      WHERE session_id = ?
-      ORDER BY updated_at ASC, id ASC
-    `).bind(session.id).run();
+  await promoteWaitlist(env, db, session);
 
-    let occupiedByOthers = 0;
-    for (const r of results) {
-      if (r.name_key === key) continue;
-      if (r.status === "YES") occupiedByOthers += Math.max(1, Number(r.pax) || 1);
-    }
+  const existingBooking = await db.prepare(`
+    SELECT id, status, pax FROM bookings WHERE session_id = ? AND name_key = ?
+  `).bind(session.id, key).first();
 
-    if (occupiedByOthers + pax > Number(session.capacity)) {
-      return { status: 409, body: { ok: false, error: "full", placement: "OVERFLOW" } };
-    }
+  if (status === "NO") {
+    await db.batch([
+      db.prepare(`
+        INSERT INTO bookings(session_id, name, name_key, status, pax, note)
+        VALUES (?, ?, ?, 'NO', ?, ?)
+        ON CONFLICT(session_id, name_key)
+        DO UPDATE SET name = excluded.name, status = 'NO', pax = excluded.pax,
+                      note = excluded.note, updated_at = CURRENT_TIMESTAMP
+      `).bind(session.id, name, key, pax, note),
+      db.prepare(`
+        UPDATE waitlist
+        SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
+        WHERE session_id = ? AND name_key = ? AND status = 'WAITING'
+      `).bind(session.id, key)
+    ]);
+
+    const promoted = await promoteWaitlist(env, db, session);
+    return { status: 200, body: { ok: true, placement: "NO", promoted: promoted.length } };
   }
 
-  await db.prepare(`
-    INSERT INTO bookings(session_id, name, name_key, status, pax, note)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ON CONFLICT(session_id, name_key)
-    DO UPDATE SET
-      name = excluded.name,
-      status = excluded.status,
-      pax = excluded.pax,
-      note = excluded.note,
-      updated_at = CURRENT_TIMESTAMP
-  `).bind(session.id, name, key, status, pax, note).run();
+  const occupiedByOthers = await confirmedPax(db, session.id, key);
+  const waitingAheadRow = await db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM waitlist
+    WHERE session_id = ? AND status = 'WAITING' AND name_key <> ?
+  `).bind(session.id, key).first();
+  const waitingAhead = Number(waitingAheadRow?.count) || 0;
+  const canFit = occupiedByOthers + pax <= Number(session.capacity);
 
-  return { status: 200, body: { ok: true, placement: status === "YES" ? "CONFIRMED" : "NO" } };
+  if (existingBooking?.status === "YES" && !canFit) {
+    return {
+      status: 409,
+      body: {
+        ok: false,
+        error: "not enough space for the updated player count",
+        placement: "CONFIRMED"
+      }
+    };
+  }
+
+  if (canFit && (existingBooking?.status === "YES" || waitingAhead === 0)) {
+    await db.batch([
+      db.prepare(`
+        INSERT INTO bookings(session_id, name, name_key, status, pax, note)
+        VALUES (?, ?, ?, 'YES', ?, ?)
+        ON CONFLICT(session_id, name_key)
+        DO UPDATE SET name = excluded.name, status = 'YES', pax = excluded.pax,
+                      note = excluded.note, updated_at = CURRENT_TIMESTAMP
+      `).bind(session.id, name, key, pax, note),
+      db.prepare(`
+        UPDATE waitlist
+        SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
+        WHERE session_id = ? AND name_key = ? AND status = 'WAITING'
+      `).bind(session.id, key)
+    ]);
+
+    const promoted = await promoteWaitlist(env, db, session);
+    return { status: 200, body: { ok: true, placement: "CONFIRMED", promoted: promoted.length } };
+  }
+
+  if (!email) {
+    return {
+      status: 409,
+      body: {
+        ok: false,
+        error: "waitlist_email_required",
+        placement: "WAITLIST"
+      }
+    };
+  }
+
+  const position = await upsertWaiting(db, session, { name, key, pax, email, note });
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      placement: "WAITLIST",
+      waitlistPosition: position
+    }
+  };
 }
 
 async function handleAdmin(payload, request, env) {
   if (!adminAuthorised(request, env)) return json({ ok: false, error: "unauthorised" }, 401);
 
   const db = await requireDB(env);
+  await ensureWaitlistSchema(db);
   const action = String(payload.action || "").toLowerCase();
 
   if (action === "admin_sessions") {
@@ -266,14 +562,22 @@ async function handleAdmin(payload, request, env) {
     if (!isISODate(date) || !isSunday(date)) return json({ ok: false, error: "Sunday only" }, 400);
     if (!isHHMM(start) || !isHHMM(end)) return json({ ok: false, error: "invalid time" }, 400);
 
-    const result = await db.prepare(`
+    const target = await getSessionByPublicId(db, id);
+    if (!target) return json({ ok: false, error: "session not found" }, 404);
+    const currentlyConfirmed = await confirmedPax(db, target.id);
+    if (capacity < currentlyConfirmed) {
+      return json({ ok: false, error: `capacity cannot be below ${currentlyConfirmed} confirmed players` }, 409);
+    }
+
+    await db.prepare(`
       UPDATE sessions
       SET event_date = ?, start_time = ?, end_time = ?, venue = ?, capacity = ?, note = ?, is_open = ?, updated_at = CURRENT_TIMESTAMP
       WHERE public_id = ?
     `).bind(date, start, end, venue, capacity, note, isOpen, id).run();
 
-    if (!result.meta?.changes) return json({ ok: false, error: "session not found" }, 404);
-    return json({ ok: true });
+    const updated = await getSessionByPublicId(db, id);
+    const promoted = await promoteWaitlist(env, db, updated);
+    return json({ ok: true, promoted: promoted.length });
   }
 
   if (action === "admin_set_only_open") {
@@ -290,8 +594,12 @@ async function handleAdmin(payload, request, env) {
 
   if (action === "admin_delete_session") {
     const id = cleanText(payload.sessionId, 120);
-    const result = await db.prepare("DELETE FROM sessions WHERE public_id = ?").bind(id).run();
-    if (!result.meta?.changes) return json({ ok: false, error: "session not found" }, 404);
+    const target = await getSessionByPublicId(db, id);
+    if (!target) return json({ ok: false, error: "session not found" }, 404);
+    await db.batch([
+      db.prepare("DELETE FROM waitlist WHERE session_id = ?").bind(target.id),
+      db.prepare("DELETE FROM sessions WHERE id = ?").bind(target.id)
+    ]);
     return json({ ok: true });
   }
 
@@ -299,7 +607,7 @@ async function handleAdmin(payload, request, env) {
     const id = cleanText(payload.sessionId, 120);
     const session = await getSessionByPublicId(db, id);
     if (!session) return json({ ok: false, error: "session not found" }, 404);
-    const data = await currentBookings(db, session);
+    const data = await currentBookings(db, session, true);
     return json({ ok: true, ...data });
   }
 
@@ -351,7 +659,7 @@ async function handlePost(request, env) {
   const action = String(payload.action || "").toLowerCase();
   if (action === "rsvp") {
     const db = await requireDB(env);
-    const result = await upsertRSVP(db, payload);
+    const result = await upsertRSVP(db, payload, env);
     return json(result.body, result.status);
   }
   if (action.startsWith("admin_")) return handleAdmin(payload, request, env);
@@ -390,7 +698,7 @@ async function createOrOpenNextSunday(env) {
   const start = await getSetting(db, "default_start", "17:00");
   const end = await getSetting(db, "default_end", "19:00");
 
-  let existing = await db.prepare(`
+  const existing = await db.prepare(`
     SELECT id, public_id
     FROM sessions
     WHERE event_date = ? AND start_time = ? AND venue = ?
@@ -434,6 +742,7 @@ export default {
     ctx.waitUntil((async () => {
       await closePastSessions(env);
       await createOrOpenNextSunday(env);
+      await retryPendingWaitlistEmails(env);
     })());
   }
 };
