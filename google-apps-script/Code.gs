@@ -1,4 +1,4 @@
-const TO_EMAIL = "apswsttss@gmail.com";
+const DEFAULT_TO_EMAIL = "apswsttss@gmail.com";
 const FROM_EMAIL = "badyrminton@gmail.com";
 
 function doPost(e) {
@@ -10,12 +10,17 @@ function doPost(e) {
       return jsonResponse({ ok: false, error: "unauthorised" });
     }
 
+    const requestedTo = String(payload.to || DEFAULT_TO_EMAIL).trim().slice(0, 254);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requestedTo)) {
+      return jsonResponse({ ok: false, error: "invalid recipient" });
+    }
+
     const subject = String(payload.subject || "YR Badminton Reminder").slice(0, 200);
     const text = String(payload.text || "YR Badminton notification").slice(0, 20000);
     const html = payload.html ? String(payload.html).slice(0, 50000) : "";
 
     const options = {
-      to: TO_EMAIL,
+      to: requestedTo,
       subject: subject,
       body: text,
       name: "YR Badminton"
@@ -27,7 +32,7 @@ function doPost(e) {
 
     return jsonResponse({
       ok: true,
-      to: TO_EMAIL,
+      to: requestedTo,
       from: FROM_EMAIL
     });
   } catch (error) {
