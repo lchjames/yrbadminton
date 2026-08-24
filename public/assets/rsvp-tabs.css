@@ -122,6 +122,12 @@
   color: #b45309;
 }
 
+/* Show the full attendee list and let the page handle vertical scrolling. */
+.user-attendee-list {
+  max-height: none;
+  overflow-y: visible;
+}
+
 /* Cross-browser layout hardening. Keep intrinsic control/text widths from
    forcing the RSVP page or its cards wider than the viewport. */
 .rsvp-page {
