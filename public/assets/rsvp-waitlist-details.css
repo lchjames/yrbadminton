@@ -12,10 +12,24 @@
   color: #78350f;
   font-weight: 900;
   white-space: nowrap;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #fff7d6;
 }
 
 .waitlist-requirement span {
   white-space: nowrap;
+}
+
+/* The public attendee count badge always shows the TOTAL players in that RSVP. */
+.user-attendee .pax-badge {
+  min-width: 34px;
+  text-align: center;
+}
+
+/* Waiting rows use the same total count inside the requirement block. */
+.waitlist-attendee .waitlist-pax-legacy {
+  display: none !important;
 }
 
 @media (max-width: 650px) {
@@ -24,10 +38,6 @@
     grid-template-areas:
       "number name name"
       ". detail badge";
-  }
-
-  .waitlist-attendee .waitlist-pax-legacy {
-    display: none;
   }
 
   .waitlist-attendee .waitlist-requirement {
@@ -43,9 +53,6 @@
     grid-column: 1;
     grid-row: 1 / span 2;
     align-self: center;
-    padding: 4px 7px;
-    border-radius: 999px;
-    background: #fff7d6;
   }
 
   .waitlist-attendee .waitlist-requirement span {
