@@ -321,14 +321,41 @@
   }
 
   .waitlist-attendee {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "number name name"
+      ". pax badge";
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 8px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .waitlist-attendee .waitlist-number {
+    grid-area: number;
   }
 
   .waitlist-attendee .attendee-name {
-    min-width: 120px;
+    grid-area: name;
+    min-width: 0;
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
   }
 
-  .waitlist-badge {
-    margin-left: auto;
+  .waitlist-attendee .waitlist-pax {
+    grid-area: pax;
+    justify-self: end;
+  }
+
+  .waitlist-attendee .waitlist-badge {
+    grid-area: badge;
+    justify-self: end;
+    margin-left: 0;
   }
 }
