@@ -27,10 +27,12 @@
         row.appendChild(badge);
       }
 
-      badge.dataset.totalPax = String(players);
       const nextText = `×${players}`;
+      if (badge.dataset.totalPax !== String(players)) badge.dataset.totalPax = String(players);
       if (badge.textContent !== nextText) badge.textContent = nextText;
-      badge.setAttribute("aria-label", `${players} players`);
+      if (badge.getAttribute("aria-label") !== `${players} players`) {
+        badge.setAttribute("aria-label", `${players} players`);
+      }
       badge.title = `${players} player${players === 1 ? "" : "s"}`;
     });
   }
@@ -45,8 +47,9 @@
       const players = totalPlayersFromBadge(paxBadge);
 
       if (paxBadge) {
-        paxBadge.dataset.totalPax = String(players);
-        paxBadge.textContent = `×${players}`;
+        const nextText = `×${players}`;
+        if (paxBadge.dataset.totalPax !== String(players)) paxBadge.dataset.totalPax = String(players);
+        if (paxBadge.textContent !== nextText) paxBadge.textContent = nextText;
         paxBadge.classList.add("waitlist-pax-legacy");
       }
 
@@ -59,11 +62,15 @@
         else row.appendChild(detail);
       }
 
-      detail.innerHTML = `
-        <strong aria-label="${players} players">×${players}</strong>
-        <span>需要 ${players} 個位 / Needs ${players} ${players === 1 ? "spot" : "spots"}</span>
-        <span>${remaining} available</span>
-      `;
+      const signature = `${players}:${remaining}`;
+      if (detail.dataset.signature !== signature) {
+        detail.dataset.signature = signature;
+        detail.innerHTML = `
+          <strong aria-label="${players} players">×${players}</strong>
+          <span>需要 ${players} 個位 / Needs ${players} ${players === 1 ? "spot" : "spots"}</span>
+          <span>${remaining} available</span>
+        `;
+      }
     });
   }
 
