@@ -1,0 +1,60 @@
+.waitlist-requirement {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #92400e;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.waitlist-requirement strong {
+  color: #78350f;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.waitlist-requirement span {
+  white-space: nowrap;
+}
+
+@media (max-width: 650px) {
+  .waitlist-attendee {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "number name name"
+      ". detail badge";
+  }
+
+  .waitlist-attendee .waitlist-pax-legacy {
+    display: none;
+  }
+
+  .waitlist-attendee .waitlist-requirement {
+    grid-area: detail;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 8px;
+    justify-self: stretch;
+    min-width: 0;
+  }
+
+  .waitlist-attendee .waitlist-requirement strong {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: #fff7d6;
+  }
+
+  .waitlist-attendee .waitlist-requirement span {
+    grid-column: 2;
+    white-space: normal;
+  }
+
+  .waitlist-attendee .waitlist-requirement span:last-child {
+    color: #a16207;
+    font-weight: 800;
+  }
+}
