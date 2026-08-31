@@ -37,8 +37,8 @@
     }
   }
 
-  // Make attendance loading session-safe. A response for 30/8 must never be
-  // rendered after the user has already switched to 06/09 (or any other date).
+  // A response for one session must never be rendered after the user has
+  // already switched to another date.
   loadList = async function () {
     const requestedSessionId = selectedSessionId;
     if (!requestedSessionId) return;
@@ -53,7 +53,7 @@
     renderAttendance(data);
   };
 
-  updateWaitlistEmailUI = function (force = false) {
+  updateWaitlistEmailUI = function () {
     const wrap = $("waitlistEmailWrap");
     const input = $("waitlistEmail");
     if (!wrap || !input) return;
@@ -69,27 +69,31 @@
     );
     const nearCapacity = hasCurrentSessionCapacityData
       && Number(currentRemaining) <= WAITLIST_EMAIL_VISIBLE_THRESHOLD;
+    const hasWaitingQueue = hasCurrentSessionCapacityData
+      && Number(currentWaitlistCount) > 0;
     const required = hasCurrentSessionCapacityData ? needsWaitlistEmail() : false;
 
-    // Capacity and waiting-list state is scoped to the selected session.
-    // While a newly selected session is loading, keep this field hidden rather
-    // than reusing the previous session's remaining/waiting values.
-    const show = force || (
+    // Never let a forced/error state bypass the facts for the selected session.
+    // Existing confirmed attendees must not see a Join Waiting List action, and
+    // an ordinary session with plenty of capacity must not inherit another
+    // session's waiting-list UI. A live queue remains visible because new RSVPs
+    // cannot bypass it even if some capacity is technically unused.
+    const show = Boolean(
       session?.isOpen
+      && hasCurrentSessionCapacityData
       && !nameIsConfirmed
-      && nearCapacity
+      && (nearCapacity || hasWaitingQueue)
     );
 
     wrap.classList.toggle("hidden", !show);
-    input.required = required;
+    input.required = show && required;
 
     if (!isYes) return;
 
-    $("submitBtn").querySelector("span:first-child").textContent = required
+    $("submitBtn").querySelector("span:first-child").textContent = show && required
       ? "加入候補名單 / Join Waiting List"
       : "確認登記 / Submit RSVP";
   };
 
-  // Re-evaluate immediately after replacing the base helpers.
   updateWaitlistEmailUI();
 })();
