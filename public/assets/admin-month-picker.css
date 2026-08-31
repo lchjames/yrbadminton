@@ -1,0 +1,27 @@
+.admin-month-select {
+  flex: 0 1 230px;
+  min-width: 190px;
+}
+
+#bookingSession,
+#announceSession {
+  flex: 1 1 320px;
+}
+
+@media (max-width: 760px) {
+  .admin-month-select {
+    flex-basis: 190px;
+    min-width: 165px;
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-month-select,
+  #bookingSession,
+  #announceSession {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex: none;
+  }
+}
