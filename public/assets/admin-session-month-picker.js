@@ -35,10 +35,40 @@
     monthInput.type = "month";
     monthInput.id = monthInputId;
     monthInput.className = "admin-input admin-month-select";
-    monthInput.setAttribute("aria-label", "選擇月份 / Select month");
-    monthInput.title = "選擇月份 / Select month";
+    monthInput.setAttribute("aria-label", "月份 / Month");
+    monthInput.title = "月份 / Month";
     sessionSelect.insertAdjacentElement("beforebegin", monthInput);
     return monthInput;
+  }
+
+  function ensurePickerField(element, labelText, kind) {
+    if (!element) return null;
+    if (element.parentElement?.classList.contains("admin-session-picker-field")) {
+      return element.parentElement;
+    }
+
+    const field = document.createElement("div");
+    field.className = `admin-session-picker-field admin-session-picker-field-${kind}`;
+    const label = document.createElement("label");
+    label.className = "admin-session-picker-label";
+    label.htmlFor = element.id;
+    label.textContent = labelText;
+
+    element.insertAdjacentElement("beforebegin", field);
+    field.append(label, element);
+    return field;
+  }
+
+  function ensurePickerLayout(sessionSelectId, monthInputId) {
+    const sessionSelect = document.getElementById(sessionSelectId);
+    const monthInput = document.getElementById(monthInputId);
+    if (!sessionSelect || !monthInput) return;
+
+    const control = sessionSelect.closest(".admin-inline-control") || sessionSelect.parentElement;
+    if (control) control.classList.add("admin-session-picker-control");
+
+    ensurePickerField(monthInput, "月份 / Month", "month");
+    ensurePickerField(sessionSelect, "場次 / Session", "session");
   }
 
   function sortedSessions() {
@@ -103,6 +133,8 @@
     const monthInput = ensureMonthInput(sessionId, monthId);
     if (!sessionSelect || !monthInput) return;
 
+    ensurePickerLayout(sessionId, monthId);
+
     if (!monthInput.dataset.bound) {
       monthInput.dataset.bound = "true";
       monthInput.addEventListener("change", () => {
@@ -128,14 +160,14 @@
     onMonthChanged: clearAnnouncementView
   });
 
-  // Replace the base implementation before Admin login/load. The month itself
-  // uses a native YYYY-MM picker, while the session dropdown contains only
-  // sessions from that month. Neither control grows with the age of the site.
   fillSelects = function () {
     const sorted = sortedSessions();
 
     const bookingMonth = ensureMonthInput("bookingSession", "bookingMonth");
     const announceMonth = ensureMonthInput("announceSession", "announceMonth");
+    ensurePickerLayout("bookingSession", "bookingMonth");
+    ensurePickerLayout("announceSession", "announceMonth");
+
     const bookingSession = $("bookingSession");
     const announceSession = $("announceSession");
 
