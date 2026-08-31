@@ -3,6 +3,17 @@
   let capacityDataSessionId = "";
   let lastRequestedSessionId = "";
 
+  function refreshWaitlistUI() {
+    updateWaitlistEmailUI();
+  }
+
+  function scheduleWaitlistRefresh() {
+    queueMicrotask(refreshWaitlistUI);
+    requestAnimationFrame(refreshWaitlistUI);
+    setTimeout(refreshWaitlistUI, 80);
+    setTimeout(refreshWaitlistUI, 300);
+  }
+
   function resetSessionScopedAttendanceUI(requestedSessionId) {
     capacityDataSessionId = "";
     currentRemaining = Number.NaN;
@@ -19,18 +30,17 @@
       }
     }
 
+    const submitLabel = $("submitBtn")?.querySelector("span:first-child");
+    if (submitLabel && chosenStatus() === "YES") {
+      submitLabel.textContent = "確認登記 / Submit RSVP";
+    }
+
     if ($("summary")) {
       $("summary").innerHTML = '<div class="empty-state">正在載入此場次資料…<span>Loading this session…</span></div>';
     }
-    if ($("list")) {
-      $("list").innerHTML = "";
-    }
-    if ($("capacityText")) {
-      $("capacityText").textContent = "正在載入出席資料… / Loading attendance…";
-    }
-    if ($("remainingText")) {
-      $("remainingText").textContent = "";
-    }
+    if ($("list")) $("list").innerHTML = "";
+    if ($("capacityText")) $("capacityText").textContent = "正在載入出席資料… / Loading attendance…";
+    if ($("remainingText")) $("remainingText").textContent = "";
     if ($("capacityBar")) {
       $("capacityBar").style.width = "0%";
       $("capacityBar").className = "capacity-fill capacity-green";
@@ -51,6 +61,11 @@
 
     capacityDataSessionId = requestedSessionId;
     renderAttendance(data);
+
+    // renderAttendance updates the capacity globals synchronously. Re-run the
+    // visibility calculation after the render so no stale pre-render state can
+    // survive on screen.
+    scheduleWaitlistRefresh();
   };
 
   updateWaitlistEmailUI = function () {
@@ -64,7 +79,6 @@
     const hasCurrentSessionCapacityData = Boolean(
       selectedSessionId
       && capacityDataSessionId === selectedSessionId
-      && $("summary")?.children.length
       && Number.isFinite(Number(currentRemaining))
     );
     const nearCapacity = hasCurrentSessionCapacityData
@@ -73,11 +87,6 @@
       && Number(currentWaitlistCount) > 0;
     const required = hasCurrentSessionCapacityData ? needsWaitlistEmail() : false;
 
-    // Never let a forced/error state bypass the facts for the selected session.
-    // Existing confirmed attendees must not see a Join Waiting List action, and
-    // an ordinary session with plenty of capacity must not inherit another
-    // session's waiting-list UI. A live queue remains visible because new RSVPs
-    // cannot bypass it even if some capacity is technically unused.
     const show = Boolean(
       session?.isOpen
       && hasCurrentSessionCapacityData
@@ -88,12 +97,43 @@
     wrap.classList.toggle("hidden", !show);
     input.required = show && required;
 
-    if (!isYes) return;
-
-    $("submitBtn").querySelector("span:first-child").textContent = show && required
-      ? "加入候補名單 / Join Waiting List"
-      : "確認登記 / Submit RSVP";
+    const submitLabel = $("submitBtn")?.querySelector("span:first-child");
+    if (submitLabel && isYes) {
+      submitLabel.textContent = show && required
+        ? "加入候補名單 / Join Waiting List"
+        : "確認登記 / Submit RSVP";
+    }
   };
 
-  updateWaitlistEmailUI();
+  // app.js originally registered the old updateWaitlistEmailUI function object
+  // directly on the Name input. Reassigning the global function later does not
+  // replace that already-registered listener. These listeners run afterwards
+  // and always apply the latest session-aware calculation as the final state.
+  const nameInput = $("name");
+  if (nameInput && !nameInput.dataset.waitlistRefreshBound) {
+    nameInput.dataset.waitlistRefreshBound = "true";
+    ["input", "change", "blur"].forEach(type => {
+      nameInput.addEventListener(type, () => queueMicrotask(refreshWaitlistUI));
+    });
+  }
+
+  const paxInput = $("pax");
+  if (paxInput && !paxInput.dataset.waitlistRefreshBound) {
+    paxInput.dataset.waitlistRefreshBound = "true";
+    ["input", "change"].forEach(type => {
+      paxInput.addEventListener(type, () => queueMicrotask(refreshWaitlistUI));
+    });
+  }
+
+  document.querySelectorAll('input[name="status"]').forEach(radio => {
+    if (radio.dataset.waitlistRefreshBound) return;
+    radio.dataset.waitlistRefreshBound = "true";
+    radio.addEventListener("change", () => queueMicrotask(refreshWaitlistUI));
+  });
+
+  // Browser autofill can populate Name after script execution without firing an
+  // input event. A few lightweight delayed checks keep the initial UI correct.
+  window.addEventListener("pageshow", scheduleWaitlistRefresh);
+  window.addEventListener("focus", scheduleWaitlistRefresh);
+  scheduleWaitlistRefresh();
 })();
