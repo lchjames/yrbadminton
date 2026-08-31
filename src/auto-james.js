@@ -11,6 +11,10 @@ export async function ensureJamesReservations(env) {
   if (!env?.DB) return;
 
   const today = brisbaneToday();
+
+  // Reserve James in every current/future session that does not already have
+  // an explicit James booking. The marker is internal and means the booking is
+  // hidden from the public list until that session is opened for RSVP.
   await env.DB.prepare(`
     INSERT OR IGNORE INTO bookings(session_id, name, name_key, status, pax, note)
     SELECT s.id, ?, ?, 'YES', 1, ?
@@ -26,6 +30,19 @@ export async function ensureJamesReservations(env) {
     AUTO_JAMES_KEY,
     today
   ).run();
+
+  // Once a session opens, permanently release the hidden marker. From this
+  // point James is a normal confirmed booking, so closing the session later
+  // (for example after the event) will not hide him again.
+  await env.DB.prepare(`
+    UPDATE bookings
+    SET note = '', updated_at = CURRENT_TIMESTAMP
+    WHERE name_key = ?
+      AND note = ?
+      AND session_id IN (
+        SELECT id FROM sessions WHERE is_open = 1
+      )
+  `).bind(AUTO_JAMES_KEY, AUTO_JAMES_NOTE).run();
 }
 
 export async function hideReservedJamesFromClosedPublicList(response, url, env) {
