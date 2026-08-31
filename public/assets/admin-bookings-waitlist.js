@@ -1,4 +1,6 @@
 (() => {
+  const AUTO_JAMES_NOTE = "__YR_AUTO_JAMES_HIDDEN_UNTIL_OPEN__";
+
   function section(titleZh, titleEn, count, rows, kind) {
     if (!rows.length) return "";
 
@@ -17,14 +19,17 @@
   }
 
   function confirmedRow(r) {
+    const autoReserved = String(r.note || "") === AUTO_JAMES_NOTE;
+    const visibleNote = autoReserved ? "" : String(r.note || "");
     return `
-      <div class="admin-booking-row admin-booking-confirmed-row">
+      <div class="admin-booking-row admin-booking-confirmed-row${autoReserved ? " admin-booking-auto-reserved-row" : ""}">
         <div class="admin-booking-main">
           <div class="admin-booking-name-line">
             <span class="admin-booking-name">${esc(r.name)}</span>
-            <span class="admin-booking-state-badge confirmed">CONFIRMED</span>
+            <span class="admin-booking-state-badge ${autoReserved ? "reserved" : "confirmed"}">${autoReserved ? "AUTO RESERVED" : "CONFIRMED"}</span>
           </div>
-          ${r.note ? `<div class="admin-booking-note">${esc(r.note)}</div>` : ""}
+          ${autoReserved ? '<div class="admin-booking-note admin-booking-reserved-note">Hidden from the public list until this session opens.</div>' : ""}
+          ${visibleNote ? `<div class="admin-booking-note">${esc(visibleNote)}</div>` : ""}
         </div>
         <span class="admin-booking-pax">×${Number(r.pax || 1)}</span>
       </div>
