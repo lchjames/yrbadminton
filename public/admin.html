@@ -4,177 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>YR Badminton Admin</title>
-  <link rel="stylesheet" href="/assets/style.css?v=20260831c">
-  <link rel="stylesheet" href="/assets/admin.css?v=20260831c">
-  <link rel="stylesheet" href="/assets/admin-email.css?v=20260831c">
-  <link rel="stylesheet" href="/assets/admin-sessions.css?v=20260831c">
-  <link rel="stylesheet" href="/assets/admin-tabs.css?v=20260831c">
-  <link rel="stylesheet" href="/assets/admin-bookings.css?v=20260831c">
-  <link rel="stylesheet" href="/assets/admin-month-picker.css?v=20260831c">
+  <link rel="stylesheet" href="/assets/style.css?v=20260831d">
+  <link rel="stylesheet" href="/assets/admin.css?v=20260831d">
+  <link rel="stylesheet" href="/assets/admin-email.css?v=20260831d">
+  <link rel="stylesheet" href="/assets/admin-sessions.css?v=20260831d">
+  <link rel="stylesheet" href="/assets/admin-tabs.css?v=20260831d">
+  <link rel="stylesheet" href="/assets/admin-bookings.css?v=20260831d">
+  <link rel="stylesheet" href="/assets/admin-month-picker.css?v=20260831d">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
     <section id="authGate" class="admin-auth-wrap">
-      <a class="admin-back" href="/" aria-label="Back to RSVP registration page">
-        <span aria-hidden="true">←</span>
-        <span>返回登記頁 / RSVP</span>
-      </a>
-
+      <a class="admin-back" href="/" aria-label="Back to RSVP registration page"><span aria-hidden="true">←</span><span>返回登記頁 / RSVP</span></a>
       <div class="admin-login-card">
-        <div class="admin-brand-mark">YR</div>
-        <p class="admin-kicker">YR BADMINTON</p>
-        <h1>管理後台</h1>
+        <div class="admin-brand-mark">YR</div><p class="admin-kicker">YR BADMINTON</p><h1>管理後台</h1>
         <p class="admin-login-copy">輸入 Admin Key 以載入管理功能。</p>
-
         <label class="admin-field-label" for="adminKey">Admin Key</label>
-        <div class="admin-login-row">
-          <input id="adminKey" class="admin-input" type="password" autocomplete="current-password" autofocus placeholder="Enter Admin Key">
-          <button id="loadBtn" class="admin-primary-btn" type="button">登入 / Login</button>
-        </div>
+        <div class="admin-login-row"><input id="adminKey" class="admin-input" type="password" autocomplete="current-password" autofocus placeholder="Enter Admin Key"><button id="loadBtn" class="admin-primary-btn" type="button">登入 / Login</button></div>
         <div id="topMsg" class="admin-message" role="status"></div>
       </div>
     </section>
-
     <div id="adminApp" hidden>
-      <header class="admin-toolbar">
-        <div class="admin-toolbar-brand">
-          <div class="admin-brand-mark small">YR</div>
-          <div>
-            <p class="admin-kicker">YR BADMINTON</p>
-            <h1>管理後台 <span>Admin</span></h1>
-          </div>
-        </div>
-        <div class="admin-toolbar-actions">
-          <a class="admin-route-btn" href="/">
-            <span aria-hidden="true">←</span>
-            <span>返回登記頁 / RSVP</span>
-          </a>
-          <button id="logoutBtn" class="admin-ghost-btn" type="button">鎖定 / Lock</button>
-        </div>
-      </header>
-
+      <header class="admin-toolbar"><div class="admin-toolbar-brand"><div class="admin-brand-mark small">YR</div><div><p class="admin-kicker">YR BADMINTON</p><h1>管理後台 <span>Admin</span></h1></div></div><div class="admin-toolbar-actions"><a class="admin-route-btn" href="/"><span aria-hidden="true">←</span><span>返回登記頁 / RSVP</span></a><button id="logoutBtn" class="admin-ghost-btn" type="button">鎖定 / Lock</button></div></header>
       <div id="adminMsg" class="admin-message admin-global-message" role="status"></div>
-
-      <section class="admin-overview" aria-label="Dashboard overview">
-        <article class="admin-stat-card">
-          <span class="admin-stat-label">Open Sessions</span>
-          <strong id="openCount" class="admin-stat-value">—</strong>
-          <span class="admin-stat-note">目前開放場次</span>
-        </article>
-        <article class="admin-stat-card">
-          <span class="admin-stat-label">All Sessions</span>
-          <strong id="totalCount" class="admin-stat-value">—</strong>
-          <span class="admin-stat-note">包含已關閉歷史</span>
-        </article>
-        <article class="admin-stat-card admin-stat-wide">
-          <span class="admin-stat-label">Next Open Session</span>
-          <strong id="nextSession" class="admin-stat-value admin-stat-date">—</strong>
-          <span id="nextSessionMeta" class="admin-stat-note">暫時沒有開放場次</span>
-        </article>
-      </section>
-
+      <section class="admin-overview" aria-label="Dashboard overview"><article class="admin-stat-card"><span class="admin-stat-label">Open Sessions</span><strong id="openCount" class="admin-stat-value">—</strong><span class="admin-stat-note">目前開放場次</span></article><article class="admin-stat-card"><span class="admin-stat-label">All Sessions</span><strong id="totalCount" class="admin-stat-value">—</strong><span class="admin-stat-note">包含已關閉歷史</span></article><article class="admin-stat-card admin-stat-wide"><span class="admin-stat-label">Next Open Session</span><strong id="nextSession" class="admin-stat-value admin-stat-date">—</strong><span id="nextSessionMeta" class="admin-stat-note">暫時沒有開放場次</span></article></section>
       <section class="admin-two-column">
-        <article class="admin-panel automation-panel">
-          <div class="admin-panel-heading">
-            <div>
-              <p class="admin-section-kicker">AUTOMATION</p>
-              <h2>每週自動化</h2>
-            </div>
-            <span class="admin-status-badge">MON 00:05</span>
-          </div>
-          <p class="admin-panel-copy">每逢 Brisbane 星期一 00:05，自動關閉舊場並處理下一個星期日。若該場已存在但為 CLOSED，會直接改為 OPEN；否則建立新場次。</p>
-          <button id="runAutoBtn" class="admin-primary-btn full" type="button">立即測試 Monday Automation</button>
-          <div id="autoMsg" class="admin-message"></div>
-
-          <div class="admin-automation-divider"></div>
-          <div class="admin-panel-heading compact">
-            <div>
-              <p class="admin-section-kicker">EMAIL REMINDER</p>
-              <h3>低登記人數提醒</h3>
-            </div>
-            <span class="admin-status-badge neutral">THU 22:00</span>
-          </div>
-          <p class="admin-panel-copy">每逢 Brisbane 星期四 22:00 檢查目前開放場次；如已登記人數少於 20，寄送提醒電郵至 apswsttss@gmail.com。</p>
-          <button id="testEmailBtn" class="admin-secondary-btn full" type="button">寄送測試電郵 / Send Test Email</button>
-          <div id="testEmailMsg" class="admin-message"></div>
-        </article>
-
-        <article class="admin-panel">
-          <div class="admin-panel-heading">
-            <div>
-              <p class="admin-section-kicker">NEW SESSION</p>
-              <h2>新增單一場次</h2>
-            </div>
-          </div>
-
-          <div class="admin-form-grid">
-            <div><label class="admin-field-label" for="newDate">Date</label><input class="admin-input" id="newDate" type="date"></div>
-            <div><label class="admin-field-label" for="newStart">Start</label><input class="admin-input" id="newStart" value="17:00"></div>
-            <div><label class="admin-field-label" for="newEnd">End</label><input class="admin-input" id="newEnd" value="19:00"></div>
-            <div><label class="admin-field-label" for="newVenue">Venue</label><input class="admin-input" id="newVenue" value="Goodminton"></div>
-            <div><label class="admin-field-label" for="newCap">Capacity</label><input class="admin-input" id="newCap" type="number" min="1" value="26"></div>
-            <div><label class="admin-field-label" for="newNote">Note</label><input class="admin-input" id="newNote" placeholder="Optional"></div>
-          </div>
-
-          <div class="admin-check-row">
-            <label class="admin-check"><input id="newOpen" type="checkbox"> <span>Open</span></label>
-            <label class="admin-check"><input id="newOnlyOpen" type="checkbox"> <span>Set as only open session</span></label>
-          </div>
-          <button id="createBtn" class="admin-primary-btn full" type="button">Create Session</button>
-          <div id="createMsg" class="admin-message"></div>
-        </article>
+        <article class="admin-panel automation-panel"><div class="admin-panel-heading"><div><p class="admin-section-kicker">AUTOMATION</p><h2>每週自動化</h2></div><span class="admin-status-badge">MON 00:05</span></div><p class="admin-panel-copy">每逢 Brisbane 星期一 00:05，自動關閉舊場並處理下一個星期日。若該場已存在但為 CLOSED，會直接改為 OPEN；否則建立新場次。</p><button id="runAutoBtn" class="admin-primary-btn full" type="button">立即測試 Monday Automation</button><div id="autoMsg" class="admin-message"></div><div class="admin-automation-divider"></div><div class="admin-panel-heading compact"><div><p class="admin-section-kicker">EMAIL REMINDER</p><h3>低登記人數提醒</h3></div><span class="admin-status-badge neutral">THU 22:00</span></div><p class="admin-panel-copy">每逢 Brisbane 星期四 22:00 檢查目前開放場次；如已登記人數少於 20，寄送提醒電郵至 apswsttss@gmail.com。</p><button id="testEmailBtn" class="admin-secondary-btn full" type="button">寄送測試電郵 / Send Test Email</button><div id="testEmailMsg" class="admin-message"></div></article>
+        <article class="admin-panel"><div class="admin-panel-heading"><div><p class="admin-section-kicker">NEW SESSION</p><h2>新增單一場次</h2></div></div><div class="admin-form-grid"><div><label class="admin-field-label" for="newDate">Date</label><input class="admin-input" id="newDate" type="date"></div><div><label class="admin-field-label" for="newStart">Start</label><input class="admin-input" id="newStart" value="17:00"></div><div><label class="admin-field-label" for="newEnd">End</label><input class="admin-input" id="newEnd" value="19:00"></div><div><label class="admin-field-label" for="newVenue">Venue</label><input class="admin-input" id="newVenue" value="Goodminton"></div><div><label class="admin-field-label" for="newCap">Capacity</label><input class="admin-input" id="newCap" type="number" min="1" value="26"></div><div><label class="admin-field-label" for="newNote">Note</label><input class="admin-input" id="newNote" placeholder="Optional"></div></div><div class="admin-check-row"><label class="admin-check"><input id="newOpen" type="checkbox"> <span>Open</span></label><label class="admin-check"><input id="newOnlyOpen" type="checkbox"> <span>Set as only open session</span></label></div><button id="createBtn" class="admin-primary-btn full" type="button">Create Session</button><div id="createMsg" class="admin-message"></div></article>
       </section>
-
-      <section class="admin-panel sessions-panel">
-        <div class="admin-panel-heading responsive">
-          <div>
-            <p class="admin-section-kicker">SESSIONS</p>
-            <h2>場次管理</h2>
-          </div>
-          <label class="admin-toggle-label"><input id="showClosed" type="checkbox"><span>顯示歷史 / History</span></label>
-        </div>
-        <div id="sessions" class="admin-session-list"></div>
-      </section>
-
+      <section class="admin-panel sessions-panel"><div class="admin-panel-heading responsive"><div><p class="admin-section-kicker">SESSIONS</p><h2>場次管理</h2></div><label class="admin-toggle-label"><input id="showClosed" type="checkbox"><span>顯示歷史 / History</span></label></div><div id="sessions" class="admin-session-list"></div></section>
       <section class="admin-two-column admin-operations">
-        <article class="admin-panel">
-          <div class="admin-panel-heading">
-            <div>
-              <p class="admin-section-kicker">BOOKINGS</p>
-              <h2>出席名單</h2>
-            </div>
-          </div>
-          <div class="admin-inline-control">
-            <select id="bookingSession" class="admin-input"></select>
-            <button id="bookingLoadBtn" class="admin-secondary-btn" type="button">Load</button>
-          </div>
-          <div id="bookingSummary" class="admin-booking-summary"></div>
-          <div id="bookings" class="admin-booking-list"></div>
-        </article>
-
-        <article class="admin-panel">
-          <div class="admin-panel-heading">
-            <div>
-              <p class="admin-section-kicker">ANNOUNCEMENT</p>
-              <h2>公告</h2>
-            </div>
-          </div>
-          <div class="admin-inline-control">
-            <select id="announceSession" class="admin-input"></select>
-            <button id="announceBtn" class="admin-secondary-btn" type="button">Generate</button>
-          </div>
-          <textarea id="announcement" class="admin-input admin-textarea" rows="8" placeholder="Generate an announcement..."></textarea>
-          <button id="copyBtn" type="button" class="admin-primary-btn full">Copy Announcement</button>
-          <div id="announceMsg" class="admin-message"></div>
-        </article>
+        <article class="admin-panel"><div class="admin-panel-heading"><div><p class="admin-section-kicker">BOOKINGS</p><h2>出席名單</h2></div></div><div class="admin-inline-control"><select id="bookingSession" class="admin-input"></select><button id="bookingLoadBtn" class="admin-secondary-btn" type="button">Load</button></div><div id="bookingSummary" class="admin-booking-summary"></div><div id="bookings" class="admin-booking-list"></div></article>
+        <article class="admin-panel"><div class="admin-panel-heading"><div><p class="admin-section-kicker">ANNOUNCEMENT</p><h2>公告</h2></div></div><div class="admin-inline-control"><select id="announceSession" class="admin-input"></select><button id="announceBtn" class="admin-secondary-btn" type="button">Generate</button></div><textarea id="announcement" class="admin-input admin-textarea" rows="8" placeholder="Generate an announcement..."></textarea><button id="copyBtn" type="button" class="admin-primary-btn full">Copy Announcement</button><div id="announceMsg" class="admin-message"></div></article>
       </section>
     </div>
   </main>
-  <script src="/assets/admin.js?v=20260831c"></script>
-  <script src="/assets/admin-session-month-picker.js?v=20260831c"></script>
-  <script src="/assets/admin-bookings-waitlist.js?v=20260831c"></script>
-  <script src="/assets/admin-waitlist-email-test.js?v=20260831c"></script>
-  <script src="/assets/admin-sessions.js?v=20260831c"></script>
-  <script src="/assets/admin-tabs.js?v=20260831c"></script>
+  <script src="/assets/admin.js?v=20260831d"></script>
+  <script src="/assets/admin-session-month-picker.js?v=20260831d"></script>
+  <script src="/assets/admin-bookings-waitlist.js?v=20260831d"></script>
+  <script src="/assets/admin-waitlist-email-test.js?v=20260831d"></script>
+  <script src="/assets/admin-sessions.js?v=20260831d"></script>
+  <script src="/assets/admin-tabs.js?v=20260831d"></script>
 </body>
 </html>
