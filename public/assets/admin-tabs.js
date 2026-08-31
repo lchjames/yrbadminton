@@ -37,7 +37,7 @@
     nav.className = "admin-tool-tabs";
     nav.setAttribute("aria-label", label);
     nav.innerHTML = tools.map((tool, index) => `
-      <button class="admin-tool-tab${index === 0 ? " is-active" : "}" type="button"
+      <button class="admin-tool-tab${index === 0 ? " is-active" : ""}" type="button"
               data-admin-tool="${tool.id}" aria-selected="${index === 0 ? "true" : "false"}">${tool.label}</button>
     `).join("");
 
