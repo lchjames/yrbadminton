@@ -14,18 +14,6 @@
     return `${map.year}-${map.month}-${map.day}`;
   }
 
-  function monthLabel(key) {
-    if (!/^\d{4}-\d{2}$/.test(key)) return key;
-    const [year, month] = key.split("-").map(Number);
-    const d = new Date(Date.UTC(year, month - 1, 1));
-    const en = d.toLocaleDateString("en-AU", {
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC"
-    });
-    return `${year}年${month}月 / ${en}`;
-  }
-
   function shortSessionLabel(s) {
     const d = new Date(`${s.date}T00:00:00Z`);
     const date = d.toLocaleDateString("en-AU", {
@@ -36,19 +24,21 @@
     return `${date} · ${s.start} · ${s.venue} · ${s.isOpen ? "OPEN" : "CLOSED"}`;
   }
 
-  function ensureMonthSelect(sessionSelectId, monthSelectId) {
-    let monthSelect = document.getElementById(monthSelectId);
-    if (monthSelect) return monthSelect;
+  function ensureMonthInput(sessionSelectId, monthInputId) {
+    let monthInput = document.getElementById(monthInputId);
+    if (monthInput) return monthInput;
 
     const sessionSelect = document.getElementById(sessionSelectId);
     if (!sessionSelect) return null;
 
-    monthSelect = document.createElement("select");
-    monthSelect.id = monthSelectId;
-    monthSelect.className = "admin-input admin-month-select";
-    monthSelect.setAttribute("aria-label", "選擇月份 / Select month");
-    sessionSelect.insertAdjacentElement("beforebegin", monthSelect);
-    return monthSelect;
+    monthInput = document.createElement("input");
+    monthInput.type = "month";
+    monthInput.id = monthInputId;
+    monthInput.className = "admin-input admin-month-select";
+    monthInput.setAttribute("aria-label", "選擇月份 / Select month");
+    monthInput.title = "選擇月份 / Select month";
+    sessionSelect.insertAdjacentElement("beforebegin", monthInput);
+    return monthInput;
   }
 
   function sortedSessions() {
@@ -72,13 +62,13 @@
     return sorted.length ? monthKey(sorted[sorted.length - 1].date) : "";
   }
 
-  function populateMonthSelect(monthSelect, sorted, selectedMonth) {
+  function configureMonthInput(monthInput, sorted, selectedMonth) {
+    if (!monthInput) return;
     const months = [...new Set(sorted.map(s => monthKey(s.date)))].sort();
-    monthSelect.innerHTML = months.length
-      ? months.map(m => `<option value="${esc(m)}">${esc(monthLabel(m))}</option>`).join("")
-      : '<option value="">No months</option>';
-    monthSelect.disabled = !months.length;
-    if (selectedMonth && months.includes(selectedMonth)) monthSelect.value = selectedMonth;
+    monthInput.disabled = !months.length;
+    monthInput.min = months[0] || "";
+    monthInput.max = months[months.length - 1] || "";
+    monthInput.value = selectedMonth || "";
   }
 
   function populateSessionSelect(sessionSelect, sorted, selectedMonth, preferredSessionId = "") {
@@ -110,14 +100,13 @@
 
   function setupPicker({ sessionId, monthId, actionButtonId, onMonthChanged }) {
     const sessionSelect = document.getElementById(sessionId);
-    const monthSelect = ensureMonthSelect(sessionId, monthId);
-    if (!sessionSelect || !monthSelect) return;
+    const monthInput = ensureMonthInput(sessionId, monthId);
+    if (!sessionSelect || !monthInput) return;
 
-    if (!monthSelect.dataset.bound) {
-      monthSelect.dataset.bound = "true";
-      monthSelect.addEventListener("change", () => {
-        const sorted = sortedSessions();
-        const count = populateSessionSelect(sessionSelect, sorted, monthSelect.value);
+    if (!monthInput.dataset.bound) {
+      monthInput.dataset.bound = "true";
+      monthInput.addEventListener("change", () => {
+        const count = populateSessionSelect(sessionSelect, sortedSessions(), monthInput.value);
         const actionButton = document.getElementById(actionButtonId);
         if (actionButton) actionButton.disabled = count === 0;
         onMonthChanged?.();
@@ -139,13 +128,14 @@
     onMonthChanged: clearAnnouncementView
   });
 
-  // Replace the base implementation before Admin login/load. Each selector now
-  // contains only sessions from one month, so it stays short even after years.
+  // Replace the base implementation before Admin login/load. The month itself
+  // uses a native YYYY-MM picker, while the session dropdown contains only
+  // sessions from that month. Neither control grows with the age of the site.
   fillSelects = function () {
     const sorted = sortedSessions();
 
-    const bookingMonth = ensureMonthSelect("bookingSession", "bookingMonth");
-    const announceMonth = ensureMonthSelect("announceSession", "announceMonth");
+    const bookingMonth = ensureMonthInput("bookingSession", "bookingMonth");
+    const announceMonth = ensureMonthInput("announceSession", "announceMonth");
     const bookingSession = $("bookingSession");
     const announceSession = $("announceSession");
 
@@ -157,14 +147,8 @@
     const bookingSelectedMonth = preferredMonth(sorted, previousBookingMonth);
     const announceSelectedMonth = preferredMonth(sorted, previousAnnouncementMonth);
 
-    if (bookingMonth) {
-      populateMonthSelect(bookingMonth, sorted, bookingSelectedMonth);
-      bookingMonth.value = bookingSelectedMonth;
-    }
-    if (announceMonth) {
-      populateMonthSelect(announceMonth, sorted, announceSelectedMonth);
-      announceMonth.value = announceSelectedMonth;
-    }
+    configureMonthInput(bookingMonth, sorted, bookingSelectedMonth);
+    configureMonthInput(announceMonth, sorted, announceSelectedMonth);
 
     const bookingCount = bookingSession
       ? populateSessionSelect(bookingSession, sorted, bookingSelectedMonth, previousBookingSession)
