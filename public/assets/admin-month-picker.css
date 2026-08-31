@@ -1,27 +1,55 @@
+.admin-session-picker-control {
+  display: grid !important;
+  grid-template-columns: 190px minmax(280px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.admin-session-picker-field {
+  min-width: 0;
+}
+
+.admin-session-picker-label {
+  display: block;
+  margin: 0 0 6px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .05em;
+}
+
 .admin-month-select {
-  flex: 0 1 230px;
-  min-width: 190px;
+  width: 100%;
+  min-width: 0;
 }
 
 #bookingSession,
 #announceSession {
-  flex: 1 1 320px;
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-session-picker-control > button {
+  min-width: 92px;
 }
 
 @media (max-width: 760px) {
-  .admin-month-select {
-    flex-basis: 190px;
-    min-width: 165px;
+  .admin-session-picker-control {
+    grid-template-columns: 165px minmax(0, 1fr) auto;
   }
 }
 
 @media (max-width: 620px) {
+  .admin-session-picker-control {
+    grid-template-columns: 1fr;
+  }
+
   .admin-month-select,
   #bookingSession,
-  #announceSession {
+  #announceSession,
+  .admin-session-picker-control > button {
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    flex: none;
   }
 }
