@@ -1,7 +1,7 @@
 .admin-view-tabs {
   display: inline-flex;
   gap: 6px;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   padding: 5px;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
@@ -9,7 +9,8 @@
   box-shadow: 0 8px 24px rgba(15,23,42,.04);
 }
 
-.admin-view-tab {
+.admin-view-tab,
+.admin-tool-tab {
   min-height: 38px;
   border: 0;
   border-radius: 10px;
@@ -19,6 +20,7 @@
   font-size: 12px;
   font-weight: 850;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .admin-view-tab.is-active {
@@ -27,61 +29,88 @@
   box-shadow: 0 6px 16px rgba(15,23,42,.14);
 }
 
-.admin-view-tab:focus-visible {
+.admin-view-tab:focus-visible,
+.admin-tool-tab:focus-visible {
   outline: 2px solid #64748b;
   outline-offset: 2px;
 }
 
 #adminManagementView[hidden],
-#adminTestingView[hidden] {
+#adminTestingView[hidden],
+.admin-tool-pane[hidden] {
   display: none !important;
 }
 
-.admin-testing-panel {
+.admin-tab-view {
+  min-width: 0;
+}
+
+.admin-tool-tabs {
+  display: flex;
+  gap: 5px;
+  margin: 0 0 16px;
+  padding: 4px;
+  overflow-x: auto;
+  border: 1px solid #e5e9ef;
+  border-radius: 13px;
+  background: #f8fafc;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-tool-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-tool-tab {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 7px 11px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.admin-tool-tab.is-active {
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 3px 10px rgba(15,23,42,.08);
+}
+
+.admin-tool-panes,
+.admin-tool-pane {
+  min-width: 0;
+}
+
+.admin-tool-pane > .admin-panel,
+.admin-tool-pane > .sessions-panel {
   margin-bottom: 16px;
 }
 
-.admin-testing-panel .admin-status-badge.neutral {
+.admin-tool-pane > .admin-overview {
+  margin-bottom: 16px;
+}
+
+.admin-testing-tool-panel {
+  max-width: 760px;
+  margin-bottom: 16px;
+}
+
+.admin-testing-tool-panel .admin-status-badge.neutral {
   background: #eef2f7;
   color: #475569;
 }
 
-.admin-testing-intro {
-  max-width: 760px;
-  margin: -4px 0 18px;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.65;
+.admin-testing-tool-panel .admin-panel-copy {
+  max-width: 680px;
+  margin-bottom: 14px;
 }
 
-.admin-testing-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+.admin-testing-controls {
+  margin-top: 14px;
 }
 
-.admin-testing-card {
-  min-width: 0;
-  padding: 17px;
-  border: 1px solid #e5e9ef;
-  border-radius: 16px;
-  background: #fbfcfd;
-}
-
-.admin-testing-card h3 {
-  margin: 0;
-  color: #111827;
-  font-size: 16px;
-  letter-spacing: -.02em;
-}
-
-.admin-testing-card .admin-panel-copy {
-  min-height: 66px;
-  margin: 8px 0 12px;
-}
-
-.admin-testing-card .admin-primary-btn.full,
-.admin-testing-card .admin-secondary-btn.full {
+.admin-testing-controls .admin-primary-btn.full,
+.admin-testing-controls .admin-secondary-btn.full {
   width: 100%;
   margin-top: 10px;
 }
@@ -98,19 +127,10 @@
   line-height: 1.5;
 }
 
-.admin-testing-card .admin-automation-divider,
-.admin-testing-card .admin-panel-heading.compact {
-  display: none;
-}
-
-@media (max-width: 900px) {
-  .admin-testing-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-testing-card .admin-panel-copy {
-    min-height: 0;
-  }
+/* Once the manual controls have been moved to Testing, the Management
+   Automation panel remains an information/status view. */
+#adminManagementView .automation-panel .admin-automation-divider:last-of-type {
+  margin-bottom: 0;
 }
 
 @media (max-width: 620px) {
@@ -122,5 +142,10 @@
 
   .admin-view-tab {
     width: 100%;
+  }
+
+  .admin-tool-tabs {
+    margin-left: -2px;
+    margin-right: -2px;
   }
 }
