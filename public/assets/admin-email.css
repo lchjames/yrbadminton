@@ -35,6 +35,12 @@
   color: #e2e8f0;
 }
 
+/* The route is already clear from the button label; do not render a trailing '/'. */
+.admin-back code,
+.admin-route-btn code {
+  display: none;
+}
+
 /* Responsive hardening for all Admin panels. */
 .admin-page {
   overflow-x: hidden;
