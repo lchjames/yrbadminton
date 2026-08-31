@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111827">
   <title>YR Badminton RSVP</title>
-  <link rel="stylesheet" href="/assets/style.css?v=20260831b">
-  <link rel="stylesheet" href="/assets/rsvp-tabs.css?v=20260831b">
-  <link rel="stylesheet" href="/assets/rsvp-waitlist-details.css?v=20260831b">
+  <link rel="stylesheet" href="/assets/style.css?v=20260831c">
+  <link rel="stylesheet" href="/assets/rsvp-tabs.css?v=20260831c">
+  <link rel="stylesheet" href="/assets/rsvp-waitlist-details.css?v=20260831c">
 </head>
 <body class="rsvp-page">
   <main class="rsvp-shell">
@@ -41,7 +41,6 @@
           <strong id="eventDay" class="date-day">--</strong>
           <span id="eventWeekday" class="date-weekday">SUN</span>
         </div>
-
         <div class="event-details">
           <h2 id="eventTitle">YR Badminton</h2>
           <div class="event-meta">
@@ -57,86 +56,36 @@
           <span id="capacityText">正在載入出席資料… / Loading attendance…</span>
           <strong id="remainingText"></strong>
         </div>
-        <div class="capacity-track" aria-hidden="true">
-          <div id="capacityBar" class="capacity-fill capacity-green" style="width:0%"></div>
-        </div>
+        <div class="capacity-track" aria-hidden="true"><div id="capacityBar" class="capacity-fill capacity-green" style="width:0%"></div></div>
       </div>
     </section>
 
     <div class="rsvp-grid-layout">
       <section class="rsvp-form-card">
-        <div class="card-heading">
-          <div>
-            <p class="section-kicker">YOUR RSVP</p>
-            <h2>出席狀態 / Attendance</h2>
-            <p class="form-intro">請選擇您的出席狀態並提交登記。<br><span>Please select your attendance status and submit your RSVP.</span></p>
-          </div>
-        </div>
-
-        <div id="closedNotice" class="registration-notice hidden" role="status">
-          <strong>此場次目前尚未開放登記。</strong>
-          <span>This session is not currently open for registration.</span>
-        </div>
-
+        <div class="card-heading"><div><p class="section-kicker">YOUR RSVP</p><h2>出席狀態 / Attendance</h2><p class="form-intro">請選擇您的出席狀態並提交登記。<br><span>Please select your attendance status and submit your RSVP.</span></p></div></div>
+        <div id="closedNotice" class="registration-notice hidden" role="status"><strong>此場次目前尚未開放登記。</strong><span>This session is not currently open for registration.</span></div>
         <form id="rsvpForm">
           <label class="field-label" for="name">姓名 / Name</label>
           <input id="name" class="rsvp-input" maxlength="80" autocomplete="name" required placeholder="請輸入姓名 / Enter your name">
-
           <label class="field-label">出席狀態 / Attendance status</label>
           <div class="status-selector" role="radiogroup" aria-label="出席狀態 / Attendance status">
-            <label class="status-option status-yes">
-              <input type="radio" name="status" value="YES" checked>
-              <span class="status-symbol">✓</span>
-              <span><strong>YES</strong><small>出席 / Attending</small></span>
-            </label>
-            <label class="status-option status-maybe">
-              <input type="radio" name="status" value="MAYBE">
-              <span class="status-symbol">?</span>
-              <span><strong>MAYBE</strong><small>尚未確定 / Not sure yet</small></span>
-            </label>
-            <label class="status-option status-no">
-              <input type="radio" name="status" value="NO">
-              <span class="status-symbol">×</span>
-              <span><strong>NO</strong><small>不出席 / Not attending</small></span>
-            </label>
+            <label class="status-option status-yes"><input type="radio" name="status" value="YES" checked><span class="status-symbol">✓</span><span><strong>YES</strong><small>出席 / Attending</small></span></label>
+            <label class="status-option status-maybe"><input type="radio" name="status" value="MAYBE"><span class="status-symbol">?</span><span><strong>MAYBE</strong><small>尚未確定 / Not sure yet</small></span></label>
+            <label class="status-option status-no"><input type="radio" name="status" value="NO"><span class="status-symbol">×</span><span><strong>NO</strong><small>不出席 / Not attending</small></span></label>
           </div>
-
           <div id="statusWarning" class="warning hidden"></div>
-
           <div class="rsvp-form-row">
-            <div>
-              <label class="field-label" for="pax">人數 / Players</label>
-              <div class="number-field">
-                <button id="paxMinus" class="number-btn" type="button" aria-label="減少人數 / Decrease players">−</button>
-                <input id="pax" type="number" min="1" max="20" value="1" inputmode="numeric">
-                <button id="paxPlus" class="number-btn" type="button" aria-label="增加人數 / Increase players">+</button>
-              </div>
-            </div>
-            <div>
-              <label class="field-label" for="note">備註 / Note</label>
-              <input id="note" class="rsvp-input" maxlength="300" placeholder="選填 / Optional">
-            </div>
+            <div><label class="field-label" for="pax">人數 / Players</label><div class="number-field"><button id="paxMinus" class="number-btn" type="button" aria-label="減少人數 / Decrease players">−</button><input id="pax" type="number" min="1" max="20" value="1" inputmode="numeric"><button id="paxPlus" class="number-btn" type="button" aria-label="增加人數 / Increase players">+</button></div></div>
+            <div><label class="field-label" for="note">備註 / Note</label><input id="note" class="rsvp-input" maxlength="300" placeholder="選填 / Optional"></div>
           </div>
-
-          <button id="submitBtn" class="primary-rsvp-btn" type="submit">
-            <span>確認登記 / Submit RSVP</span>
-            <span aria-hidden="true">→</span>
-          </button>
-
+          <button id="submitBtn" class="primary-rsvp-btn" type="submit"><span>確認登記 / Submit RSVP</span><span aria-hidden="true">→</span></button>
           <button id="cancelBtn" class="cancel-rsvp-btn" type="button">更新為不出席 / Change to NO</button>
           <div id="msg" class="rsvp-message" role="status" aria-live="polite"></div>
         </form>
       </section>
 
       <section class="attendance-card">
-        <div class="card-heading attendance-heading">
-          <div>
-            <p class="section-kicker">ATTENDEES</p>
-            <h2>目前出席名單 / Attendees</h2>
-          </div>
-          <button id="refreshBtn" class="round-refresh" type="button" aria-label="重新整理出席名單 / Refresh attendee list">↻</button>
-        </div>
-
+        <div class="card-heading attendance-heading"><div><p class="section-kicker">ATTENDEES</p><h2>目前出席名單 / Attendees</h2></div><button id="refreshBtn" class="round-refresh" type="button" aria-label="重新整理出席名單 / Refresh attendee list">↻</button></div>
         <div id="summary" class="attendance-summary"></div>
         <div id="list" class="attendee-list user-attendee-list"></div>
       </section>
@@ -145,49 +94,35 @@
     <footer class="rsvp-footer">YR Badminton · 星期日 Sunday · 17:00–19:00</footer>
   </main>
 
-  <script src="/assets/app.js?v=20260831b"></script>
-  <script src="/assets/rsvp-waitlist-visibility.js?v=20260831b"></script>
-  <script src="/assets/rsvp-waitlist-details.js?v=20260831b"></script>
+  <script src="/assets/app.js?v=20260831c"></script>
+  <script src="/assets/rsvp-waitlist-visibility.js?v=20260831c"></script>
+  <script src="/assets/rsvp-waitlist-details.js?v=20260831c"></script>
   <script>
     (() => {
       const tabs = document.getElementById("sessionTabs");
       if (!tabs) return;
-
       let synced = false;
       const syncFirstDateLayout = () => {
         const selected = tabs.querySelector(".session-tab.is-selected");
         if (!selected || typeof showSession !== "function") return false;
-
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             showSession();
-
             if (window.matchMedia("(max-width: 700px)").matches) {
               const desiredLeft = Math.max(0, selected.offsetLeft - tabs.offsetLeft - 2);
               tabs.scrollLeft = desiredLeft;
-
               const eventMain = document.querySelector(".event-main");
               if (eventMain) void eventMain.offsetWidth;
             }
           });
         });
-
         synced = true;
         return true;
       };
-
-      const observer = new MutationObserver(() => {
-        if (!synced && syncFirstDateLayout()) observer.disconnect();
-      });
+      const observer = new MutationObserver(() => { if (!synced && syncFirstDateLayout()) observer.disconnect(); });
       observer.observe(tabs, { childList: true });
-
-      window.addEventListener("load", () => {
-        if (syncFirstDateLayout()) observer.disconnect();
-      }, { once: true });
-
-      window.addEventListener("pageshow", event => {
-        if (event.persisted) syncFirstDateLayout();
-      });
+      window.addEventListener("load", () => { if (syncFirstDateLayout()) observer.disconnect(); }, { once: true });
+      window.addEventListener("pageshow", event => { if (event.persisted) syncFirstDateLayout(); });
     })();
   </script>
 </body>
